@@ -1,0 +1,20 @@
+order_date,customer,category,amount,city
+2026-01-05,Aziza,Kitob,150000,Toshkent
+2026-01-12,Bobur,Elektronika,850000,Samarqand
+2026-01-24,Malika,Kitob,200000,Buxoro
+2026-02-03,Aziza,Elektronika,1200000,Toshkent
+2026-02-14,Dilshod,Uy jihozlari,450000,Samarqand
+2026-02-20,Malika,Kitob,250000,Buxoro
+2026-03-02,Bobur,Elektronika,1500000,Samarqand
+2026-03-11,Aziza,Uy jihozlari,650000,Toshkent
+2026-03-18,Dilshod,Kitob,300000,Samarqand
+2026-03-27,Malika,Elektronika,950000,Buxoro
+2026-04-04,Aziza,Kitob,180000,Toshkent
+2026-04-15,Bobur,Uy jihozlari,520000,Samarqand
+2026-04-23,Dilshod,Elektronika,,Samarqand
+2026-05-01,Malika,Elektronika,1100000,Buxoro
+2026-05-12,Aziza,Uy jihozlari,750000,Toshkent
+2026-05-21,Bobur,Kitob,220000,Samarqand
+2026-06-05,Dilshod,Elektronika,1700000,Samarqand
+2026-06-16,Malika,Uy jihozlari,800000,Buxoro
+2026-06-24,Aziza,Kitob,350000,Toshkent

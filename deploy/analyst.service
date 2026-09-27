@@ -1,0 +1,31 @@
+[Unit]
+Description=Data Analyst application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=analyst
+Group=analyst
+WorkingDirectory=/opt/data-analyst
+Environment=ANALYST_DATA_DIR=/var/lib/data-analyst
+Environment=PYTHONDONTWRITEBYTECODE=1
+# Read secrets from /opt/data-analyst/.env through python-dotenv.
+# One worker: the persisted agent queue currently has a single process owner.
+ExecStart=/opt/data-analyst/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1 --no-access-log
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=210
+KillMode=control-group
+UMask=0077
+StateDirectory=data-analyst
+StateDirectoryMode=0700
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+NoNewPrivileges=true
+# Bubblewrap needs unprivileged user namespaces: do not set RestrictNamespaces=true.
+# Validate sandbox probe as this service user on the target host before rollout.
+
+[Install]
+WantedBy=multi-user.target
