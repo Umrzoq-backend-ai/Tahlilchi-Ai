@@ -61,6 +61,13 @@ with sync_playwright() as playwright:
         expect(page.locator("#auth-panel")).to_be_hidden()
         expect(page.locator(".workspace-label strong")).to_have_text(username)
         expect(page.locator("#demo-button")).to_be_enabled()
+        expect(page.locator("#demo-sidebar-button")).to_be_visible()
+        page.set_viewport_size({"width": 390, "height": 844})
+        expect(page.locator("#demo-sidebar-button")).to_be_visible()
+        assert page.evaluate(
+            "document.documentElement.scrollWidth <= window.innerWidth"
+        )
+        page.set_viewport_size({"width": 1440, "height": 1100})
         page.screenshot(path=str(screenshots / "desktop-upload.png"), full_page=True)
         with page.expect_response(
             lambda response: (
@@ -68,7 +75,7 @@ with sync_playwright() as playwright:
                 and response.request.method == "POST"
             )
         ) as uploaded:
-            page.locator("#demo-button").click()
+            page.locator("#demo-sidebar-button").click()
         dataset_id = uploaded.value.json()["id"]
         expect(page.locator("#dataset-name")).to_have_text("sales.csv")
         expect(page.locator("#metric-rows")).to_have_text("19")

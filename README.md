@@ -60,7 +60,7 @@ Tashqi modelga savol, ustun nomlari/turlari, reja va qayta tuzatish uchun yarati
 
 ## Sinab ko‘rish
 
-1. **Savdo namunasini ochish**ni bosing.
+1. Bo‘sh ish maydonining chap tomonidagi **Namunada sinab ko‘rish**ni (yoki yuklash qismidagi **Savdo namunasini ochish**ni) bosing.
 2. **Gemini bilan savol bering** maydoniga quyidagilardan birini yozing:
    - `order_date ustuni YYYY-MM-DD formatida. Har bir oy uchun amount yig‘indisini hisobla va barcha oylarni chiqar.`
    - `city ustuni Toshkent bo‘lgan qatorlardagi amount yig‘indisini hisobla.`

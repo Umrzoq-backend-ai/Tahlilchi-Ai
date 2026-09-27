@@ -8,3 +8,6 @@
 @media(max-width:760px){.google-link-control{margin:0}.google-link-button{padding:7px;font-size:10px}}
 
 @media(max-height:800px){.auth-shell{align-items:start}.auth-card{margin:0 auto}}
+
+.sidebar-demo{display:flex;flex-direction:column;gap:4px;width:100%;margin:-9px 0 16px;padding:11px 12px;background:var(--soft);border:1px solid #d4e3d4;border-radius:9px;color:var(--green);text-align:left}.sidebar-demo:hover:not(:disabled){background:#e3f0e3}.sidebar-demo strong{font-size:12px}.sidebar-demo small{font-size:10px;color:var(--muted)}
+@media(max-width:760px){.sidebar-demo{margin:8px 0 0;padding:9px 11px}}

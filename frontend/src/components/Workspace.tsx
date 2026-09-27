@@ -300,6 +300,7 @@ export default function Workspace() {
         {datasets.map(item => <button key={item.id} type="button" className={`dataset-item ${item.id === dataset?.id ? "selected" : ""}`} onClick={() => void perform(() => openDataset(item.id))} disabled={busy} title={item.name}><span className="file-icon">▤</span><span>{item.name}</span></button>)}
       </nav>
       <button id="add-file" className="sidebar-add" type="button" onClick={() => setShowUpload(true)}>＋ &nbsp; Yangi fayl yuklash</button>
+      {datasets.length === 0 && <button id="demo-sidebar-button" className="sidebar-demo" type="button" onClick={() => void loadDemo()} disabled={busy}><strong>Namunada sinab ko‘rish ↗</strong><small>19 ta savdo yozuvi · tayyor CSV</small></button>}
       <div className="sidebar-bottom">
         {googleStatus?.configured && <div className="google-link-control">
           {user?.google_email
