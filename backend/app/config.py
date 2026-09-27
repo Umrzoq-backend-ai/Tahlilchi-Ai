@@ -1,4 +1,5 @@
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -27,6 +28,13 @@ class Settings:
     sandbox_binary: str = "/usr/bin/bwrap"
     public_origin: str = ""
     session_hours: int = 12
+    google_client_id: str = ""
+    google_client_secret: str = field(default="", repr=False)
+    google_allowed_domain: str = ""
+
+    @property
+    def google_enabled(self) -> bool:
+        return bool(self.google_client_id and self.google_client_secret)
 
     def __post_init__(self):
         origin = urlsplit(self.public_origin)
@@ -40,6 +48,11 @@ class Settings:
             or origin.password
         ):
             raise ValueError("ANALYST_PUBLIC_ORIGIN must be an HTTPS origin without a path")
+        if self.google_allowed_domain and not re.fullmatch(
+            r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}",
+            self.google_allowed_domain,
+        ):
+            raise ValueError("ANALYST_GOOGLE_ALLOWED_DOMAIN must be a lowercase domain")
         if not 1 <= self.session_hours <= 168:
             raise ValueError("Session lifetime must be 1..168 hours")
 
@@ -78,11 +91,14 @@ class Settings:
         if size < 1 or timeout < 1:
             raise ValueError("Upload size and job timeout must be positive")
         return cls(
-            data_dir=Path(values.get("ANALYST_DATA_DIR", str(PROJECT_ROOT / ".data"))).resolve(),
+            data_dir=(PROJECT_ROOT / values.get("ANALYST_DATA_DIR", ".data")).resolve(),
             max_upload_bytes=size * 1024 * 1024,
             job_timeout=timeout,
             public_origin=values.get("ANALYST_PUBLIC_ORIGIN", "").rstrip("/"),
             session_hours=int(values.get("ANALYST_SESSION_HOURS", "12")),
+            google_client_id=values.get("ANALYST_GOOGLE_CLIENT_ID", "").strip(),
+            google_client_secret=values.get("ANALYST_GOOGLE_CLIENT_SECRET", "").strip(),
+            google_allowed_domain=values.get("ANALYST_GOOGLE_ALLOWED_DOMAIN", "").strip().lower(),
             llm_base_url=values.get(
                 "ANALYST_LLM_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai"
             ).rstrip("/"),

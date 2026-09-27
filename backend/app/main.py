@@ -19,7 +19,7 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -29,6 +29,7 @@ from app.agent.orchestrator import TERMINAL, AgentService
 from app.auth import COOKIE, AuthService, Credentials, csrf_token
 from app.config import PROJECT_ROOT, Settings
 from app.errors import AppError
+from app.google_oauth import STATE_COOKIE, GoogleOAuth
 from app.schemas import AnalysisRequest
 from app.services import DatasetService
 
@@ -66,6 +67,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.service = DatasetService(config)
         app.state.agent = AgentService(app.state.service)
         app.state.auth = AuthService(app.state.service.store, config)
+        app.state.google_oauth = GoogleOAuth(config)
         try:
             yield
         finally:
@@ -73,7 +75,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title="Data Analyst",
-        version="0.4.0",
+        version="0.5.0",
         description="CSV/Excel, Gemini agenti va mustaqil tekshiriladigan hisoblashlar.",
         lifespan=lifespan,
     )
@@ -104,6 +106,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "/api/v1/auth/me",
             "/api/v1/auth/login",
             "/api/v1/auth/setup",
+            "/api/v1/auth/google/status",
+            "/api/v1/auth/google/start",
+            "/api/v1/auth/google/callback",
         }
         if request.url.path.startswith("/api/") and request.url.path not in public:
             token = request.cookies.get(COOKIE, "")
@@ -126,7 +131,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         response = await call_next(request)
         response.headers["X-Request-ID"] = request.state.request_id
         response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Referrer-Policy"] = "same-origin"
+        response.headers["Referrer-Policy"] = (
+            "no-referrer" if request.url.path == "/api/v1/auth/google/callback" else "same-origin"
+        )
         response.headers["Content-Security-Policy"] = (
             (
                 "default-src 'self'; script-src 'self'"
@@ -217,6 +224,116 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         return start_session(request, response, user)
 
+    def google_redirect_uri(request: Request) -> str:
+        origin = config.public_origin or f"{request.url.scheme}://{request.headers.get('host')}"
+        return origin + "/api/v1/auth/google/callback"
+
+    def google_flow_response(request: Request, session_token: str | None = None):
+        oauth = request.app.state.google_oauth
+        uri = google_redirect_uri(request)
+        state, nonce, verifier, url = oauth.begin(uri)
+        request.app.state.auth.begin_google_flow(
+            state,
+            nonce,
+            verifier,
+            uri,
+            session_token,
+            request.client.host if request.client else "unknown",
+        )
+        response = JSONResponse({"url": url})
+        response.set_cookie(
+            STATE_COOKIE,
+            state,
+            httponly=True,
+            secure=bool(config.public_origin),
+            samesite="lax",
+            max_age=600,
+            path="/api/v1/auth/google/callback",
+        )
+        return response
+
+    @app.get("/api/v1/auth/google/status")
+    def google_status(request: Request):
+        user = request.app.state.auth.session(request.cookies.get(COOKIE, ""))
+        return {
+            "configured": config.google_enabled,
+            "redirect_uri": google_redirect_uri(request),
+            "linked": bool(user and user.get("google_email")),
+        }
+
+    @app.get("/api/v1/auth/google/start")
+    def google_start(request: Request):
+        if request.app.state.auth.session(request.cookies.get(COOKIE, "")):
+            raise AppError(
+                "ALREADY_LOGGED_IN", "Hisobingizga Google bog‘lash tugmasidan foydalaning.", 409
+            )
+        return google_flow_response(request)
+
+    @app.post("/api/v1/auth/google/link")
+    def google_link(request: Request):
+        if request.state.user.get("google_email"):
+            raise AppError("GOOGLE_LINKED", "Bu hisobga Google allaqachon bog‘langan.", 409)
+        return google_flow_response(request, request.cookies.get(COOKIE, ""))
+
+    @app.get("/api/v1/auth/google/callback")
+    async def google_callback(
+        request: Request,
+        state: str = Query(max_length=128),
+        code: str | None = Query(default=None, max_length=4096),
+        error: str | None = Query(default=None, max_length=128),
+    ):
+        flow = request.app.state.auth.consume_google_flow(
+            state, request.cookies.get(STATE_COOKIE, "")
+        )
+        response = RedirectResponse("/", status_code=303)
+        response.delete_cookie(
+            STATE_COOKIE,
+            path="/api/v1/auth/google/callback",
+            secure=bool(config.public_origin),
+            httponly=True,
+            samesite="lax",
+        )
+        if error or not code:
+            response.headers["Location"] = "/?google_error=denied"
+            return response
+        try:
+            token = await request.app.state.google_oauth.exchange(
+                code, flow["verifier"], flow["redirect_uri"]
+            )
+            subject, email = await asyncio.to_thread(
+                request.app.state.google_oauth.verify, token, flow["nonce"]
+            )
+            user = await asyncio.to_thread(
+                request.app.state.auth.google_identity,
+                subject,
+                email,
+                flow["user_id"],
+                flow["session_hash"],
+            )
+        except AppError as exc:
+            logger.warning(
+                "Google sign-in failed request_id=%s code=%s", request.state.request_id, exc.code
+            )
+            response.headers["Location"] = "/?google_error=" + (
+                "link"
+                if exc.code == "GOOGLE_LINKED"
+                else "setup"
+                if exc.code == "GOOGLE_SETUP"
+                else "failed"
+            )
+            return response
+        session_token = request.app.state.auth.new_session(user["id"])
+        response.set_cookie(
+            COOKIE,
+            session_token,
+            httponly=True,
+            secure=bool(config.public_origin),
+            samesite="strict",
+            max_age=config.session_hours * 3600,
+            path="/",
+        )
+        return response
+
     @app.post("/api/v1/auth/logout", status_code=204)
     def logout(request: Request, response: Response):
         request.app.state.auth.logout(request.cookies.get(COOKIE, ""))
@@ -234,7 +351,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def health(request: Request):
         return {
             "status": "ok",
-            "version": "0.4.0",
+            "version": "0.5.0",
             "mode": "server" if config.public_origin else "local",
             "agent_enabled": request.app.state.agent.status()["configured"],
             "max_upload_bytes": config.max_upload_bytes,

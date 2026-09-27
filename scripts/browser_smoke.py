@@ -36,10 +36,15 @@ with sync_playwright() as playwright:
     try:
         page.goto(base_url)
         expect(page.locator("#auth-form")).to_be_visible()
-        page.screenshot(path=str(screenshots / "login.png"), full_page=True)
+        google_status = page.request.get(f"{base_url}/api/v1/auth/google/status").json()
         setup = (
             page.request.get(f"{base_url}/api/v1/auth/me").json().get("setup_allowed")
         )
+        if not setup:
+            expect(page.locator("#google-login")).to_be_enabled() if google_status[
+                "configured"
+            ] else expect(page.locator("#google-login")).to_be_disabled()
+        page.screenshot(path=str(screenshots / "login.png"), full_page=True)
         if setup and os.getenv("ANALYST_TEST_SETUP") != "1":
             raise RuntimeError(
                 "First-account setup requires ANALYST_TEST_SETUP=1 on an isolated test server."
@@ -139,6 +144,9 @@ with sync_playwright() as playwright:
         page.locator("#logout-button").click()
         expect(page.locator("#auth-form")).to_be_visible()
         expect(page.locator(".sidebar")).to_be_hidden()
+        expect(page.locator("#google-login")).to_be_enabled() if google_status[
+            "configured"
+        ] else expect(page.locator("#google-login")).to_be_disabled()
         assert (
             page.request.get(f"{base_url}/api/v1/auth/me").json()["authenticated"]
             is False

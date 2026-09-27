@@ -22,7 +22,7 @@ cp -n .env.example .env
 
 Frontenddagi har o‘zgarishdan so‘ng shu buildni qayta ishga tushiring va systemd xizmatini restart qiling (CSP skript hashlarini qayta hisoblaydi).
 
-`.env`ni lokal tahrirlang; mavjud Gemini kalitini saqlang:
+`.env`ni lokal tahrirlang; mavjud Gemini kalitini saqlang. Google orqali login kerak bo‘lsa, [Google OAuth yo‘riqnomasi](GOOGLE_LOGIN.md) bo‘yicha HTTPS callback URI’ni ro‘yxatdan o‘tkazing:
 
 ```dotenv
 ANALYST_DATA_DIR=/var/lib/data-analyst

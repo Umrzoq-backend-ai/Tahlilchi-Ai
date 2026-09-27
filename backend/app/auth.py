@@ -60,6 +60,15 @@ class AuthService:
                 CREATE TABLE IF NOT EXISTS login_attempts (
                     bucket TEXT PRIMARY KEY, failures INTEGER NOT NULL, resets_at REAL NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS google_auth_flows (
+                    state_hash TEXT PRIMARY KEY, nonce TEXT NOT NULL, verifier TEXT NOT NULL,
+                    redirect_uri TEXT NOT NULL, user_id TEXT, session_hash TEXT,
+                    created_at REAL NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS google_identities (
+                    sub TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+                    email TEXT NOT NULL
+                );
             """)
 
     def needs_setup(self):
@@ -149,6 +158,169 @@ class AuthService:
                 (token_hash("user:" + credentials.username.lower()),),
             )
 
+    def begin_google_flow(
+        self,
+        state: str,
+        nonce: str,
+        verifier: str,
+        redirect_uri: str,
+        session_token: str | None = None,
+        peer: str = "unknown",
+    ):
+        session = self.session(session_token) if session_token else None
+        if session_token and not session:
+            raise AppError("AUTH_REQUIRED", "Google hisobini bog‘lash uchun qayta kiring.", 401)
+        with self.store.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            now = time.time()
+            db.execute("DELETE FROM google_auth_flows WHERE created_at<?", (now - 600,))
+            db.execute("DELETE FROM login_attempts WHERE resets_at<=?", (now,))
+            bucket = token_hash("google_start:" + peer)
+            row = db.execute(
+                "SELECT failures FROM login_attempts WHERE bucket=?", (bucket,)
+            ).fetchone()
+            if row and row[0] >= 20:
+                raise AppError(
+                    "LOGIN_LIMIT", "Google kirish urinishlari ko‘p. Keyinroq urinib ko‘ring.", 429
+                )
+            db.execute(
+                "INSERT INTO login_attempts VALUES (?, 1, ?) ON CONFLICT(bucket) DO UPDATE SET failures=failures+1",
+                (bucket, now + 900),
+            )
+            db.execute(
+                "INSERT INTO google_auth_flows VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    token_hash(state),
+                    nonce,
+                    verifier,
+                    redirect_uri,
+                    session["id"] if session else None,
+                    token_hash(session_token) if session_token else None,
+                    time.time(),
+                ),
+            )
+
+    def consume_google_flow(self, state: str, cookie_state: str):
+        if (
+            not state
+            or len(state) > 128
+            or not hmac.compare_digest(state.encode(), cookie_state.encode())
+        ):
+            raise AppError(
+                "GOOGLE_STATE", "Google kirish sessiyasi mos emas. Qayta urinib ko‘ring.", 403
+            )
+        with self.store.connect() as db:
+            row = db.execute(
+                "DELETE FROM google_auth_flows WHERE state_hash=? RETURNING nonce, verifier, redirect_uri, user_id, session_hash, created_at",
+                (token_hash(state),),
+            ).fetchone()
+        if not row or time.time() - row[5] > 600:
+            raise AppError(
+                "GOOGLE_STATE", "Google kirish sessiyasi tugagan. Qayta urinib ko‘ring.", 403
+            )
+        return {
+            "nonce": row[0],
+            "verifier": row[1],
+            "redirect_uri": row[2],
+            "user_id": row[3],
+            "session_hash": row[4],
+        }
+
+    def google_identity(
+        self, subject: str, email: str, user_id: str | None = None, session_hash: str | None = None
+    ):
+        if not subject or len(subject) > 255 or not email or len(email) > 320:
+            raise AppError("GOOGLE_IDENTITY", "Google hisob ma’lumoti yaroqsiz.", 401)
+        with self.store.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            if user_id:
+                active = db.execute(
+                    "SELECT 1 FROM sessions WHERE token_hash=? AND user_id=? AND expires_at>?",
+                    (session_hash, user_id, time.time()),
+                ).fetchone()
+                if not active:
+                    raise AppError(
+                        "AUTH_REQUIRED", "Bog‘lash sessiyasi tugagan. Qayta kiring.", 401
+                    )
+                bound = db.execute(
+                    "SELECT user_id FROM google_identities WHERE sub=?", (subject,)
+                ).fetchone()
+                other = db.execute(
+                    "SELECT sub FROM google_identities WHERE user_id=?", (user_id,)
+                ).fetchone()
+                if other and other[0] != subject:
+                    raise AppError(
+                        "GOOGLE_LINKED", "Bu ish maydoniga boshqa Google hisobi bog‘langan.", 409
+                    )
+                if bound and bound[0] != user_id:
+                    source_id = bound[0]
+                    source = db.execute(
+                        "SELECT username, role FROM users WHERE id=?", (source_id,)
+                    ).fetchone()
+                    owns_data = db.execute(
+                        "SELECT 1 FROM datasets WHERE owner_id=? LIMIT 1", (source_id,)
+                    ).fetchone()
+                    if (
+                        not source
+                        or not source[0].startswith("google_")
+                        or source[1] != "user"
+                        or owns_data
+                    ):
+                        raise AppError(
+                            "GOOGLE_LINKED",
+                            "Bu Google hisobi boshqa ish maydoniga bog‘langan.",
+                            409,
+                        )
+                    db.execute(
+                        "UPDATE google_identities SET user_id=?, email=? WHERE sub=?",
+                        (user_id, email, subject),
+                    )
+                    db.execute("DELETE FROM sessions WHERE user_id=?", (source_id,))
+                    db.execute("DELETE FROM users WHERE id=?", (source_id,))
+                if not bound:
+                    db.execute(
+                        "INSERT INTO google_identities VALUES (?, ?, ?)", (subject, user_id, email)
+                    )
+                else:
+                    db.execute("UPDATE google_identities SET email=? WHERE sub=?", (email, subject))
+                target_id = user_id
+            else:
+                bound = db.execute(
+                    "SELECT user_id FROM google_identities WHERE sub=?", (subject,)
+                ).fetchone()
+                if bound:
+                    target_id = bound[0]
+                    db.execute("UPDATE google_identities SET email=? WHERE sub=?", (email, subject))
+                else:
+                    if db.execute("SELECT 1 FROM users LIMIT 1").fetchone() is None:
+                        raise AppError(
+                            "GOOGLE_SETUP", "Avval lokal administrator hisobini yarating.", 403
+                        )
+                    if self.settings.public_origin and not self.settings.google_allowed_domain:
+                        raise AppError(
+                            "GOOGLE_INVITE", "Google orqali yangi hisoblar bu serverda yopiq.", 403
+                        )
+                    target_id = str(uuid4())
+                    username = "google_" + hashlib.sha256(subject.encode()).hexdigest()[:20]
+                    db.execute(
+                        "INSERT INTO users VALUES (?, ?, ?, 'user', ?)",
+                        (
+                            target_id,
+                            username,
+                            password_hash(secrets.token_urlsafe(32)),
+                            time.time(),
+                        ),
+                    )
+                    db.execute(
+                        "INSERT INTO google_identities VALUES (?, ?, ?)",
+                        (subject, target_id, email),
+                    )
+            row = db.execute(
+                "SELECT u.id, u.username, u.role, g.email FROM users u LEFT JOIN google_identities g ON g.user_id=u.id WHERE u.id=?",
+                (target_id,),
+            ).fetchone()
+        return {"id": row[0], "username": row[1], "role": row[2], "google_email": row[3]}
+
     def new_session(self, user_id):
         token = secrets.token_urlsafe(32)
         with self.store.connect() as db:
@@ -164,10 +336,14 @@ class AuthService:
             return None
         with self.store.connect() as db:
             row = db.execute(
-                "SELECT u.id, u.username, u.role FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?",
+                "SELECT u.id, u.username, u.role, g.email FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN google_identities g ON g.user_id=u.id WHERE s.token_hash=? AND s.expires_at>?",
                 (token_hash(token), time.time()),
             ).fetchone()
-        return {"id": row[0], "username": row[1], "role": row[2]} if row else None
+        return (
+            {"id": row[0], "username": row[1], "role": row[2], "google_email": row[3]}
+            if row
+            else None
+        )
 
     def logout(self, token):
         with self.store.connect() as db:

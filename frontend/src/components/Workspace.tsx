@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from "react";
 import { api, jsonBody, setCsrfToken } from "@/lib/api";
-import type { AgentRun, AgentStatus, Analysis, AnalysisRequest, Dataset, Health, Profile, Session, User } from "@/lib/types";
+import type { AgentRun, AgentStatus, Analysis, AnalysisRequest, Dataset, GoogleStatus, Health, Profile, Session, User } from "@/lib/types";
 import { DataTable } from "./Results";
 import Results from "./Results";
 
@@ -28,6 +28,7 @@ type AuthMode = "checking" | "setup" | "login" | "ready";
 export default function Workspace() {
   const [authMode, setAuthMode] = useState<AuthMode>("checking");
   const [user, setUser] = useState<User | null>(null);
+  const [googleStatus, setGoogleStatus] = useState<GoogleStatus | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [newUsername, setNewUsername] = useState("");
@@ -88,7 +89,21 @@ export default function Workspace() {
     started.current = true;
     (async () => {
       try {
-        const session = await api<Session>("/auth/me");
+        const [session, google] = await Promise.all([
+          api<Session>("/auth/me"), api<GoogleStatus>("/auth/google/status"),
+        ]);
+        setGoogleStatus(google);
+        const googleError = new URLSearchParams(window.location.search).get("google_error");
+        if (googleError) {
+          const messages: Record<string, string> = {
+            denied: "Google kirishi bekor qilindi.",
+            link: "Bu Google hisobi boshqa ish maydoniga bog‘langan.",
+            setup: "Avval lokal administrator hisobini yarating.",
+            failed: "Google kirishi yakunlanmadi. Qayta urinib ko‘ring.",
+          };
+          setError(messages[googleError] ?? messages.failed);
+          window.history.replaceState(null, "", "/");
+        }
         if (!session.authenticated) { setAuthMode(session.setup_allowed ? "setup" : "login"); return; }
         setCsrfToken(session.csrf_token); setUser(session.user); setAuthMode("ready");
         const [healthData, agentData, list] = await Promise.all([
@@ -136,6 +151,20 @@ export default function Workspace() {
       setCsrfToken(session.csrf_token);
       // Reload replaces all state and obtains current datasets through the normal entry path.
       window.location.reload();
+    });
+  }
+
+  async function startGoogle(link: boolean) {
+    await perform(async () => {
+      const response = await api<{ url: string }>(
+        link ? "/auth/google/link" : "/auth/google/start",
+        link ? { method: "POST" } : {},
+      );
+      const target = new URL(response.url);
+      if (target.protocol !== "https:" || target.hostname !== "accounts.google.com") {
+        throw new Error("Google kirish manzili noto‘g‘ri.");
+      }
+      window.location.assign(target.href);
     });
   }
 
@@ -246,6 +275,14 @@ export default function Workspace() {
       <label>Parol<input id="auth-password" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete={authMode === "setup" ? "new-password" : "current-password"} minLength={12} maxLength={128} required placeholder="Kamida 12 belgi" /></label>
       <button id="auth-submit" className="button primary full" type="submit" disabled={busy}>{busy ? "Tekshirilmoqda…" : authMode === "setup" ? "Hisob yaratish" : "Kirish"} <span>→</span></button>
     </form>}
+    {authMode === "login" && <div className="google-login-area">
+      <div className="auth-divider"><span>yoki</span></div>
+      <button id="google-login" type="button" className="google-button" disabled={busy || !googleStatus?.configured} onClick={() => void startGoogle(false)}>
+        <GoogleMark /> Google orqali kirish
+      </button>
+      {!googleStatus?.configured && <p className="google-hint">Google kirishi uchun OAuth sozlamalari kerak.</p>}
+      <p className="google-hint">Eski fayllar bilan ishlash uchun avval eski hisobingizga kirib, Google hisobini bog‘lang.</p>
+    </div>}
     <p className="auth-note">Savollar va ustun nomlari Gemini’ga yuborilishi mumkin. Fayl qatorlari lokal hisoblanadi.</p>
   </section></main>;
 
@@ -256,7 +293,7 @@ export default function Workspace() {
   return <div className="app-shell">
     <aside className="sidebar">
       <a className="brand" href="/" aria-label="Data Analyst bosh sahifa"><span className="brand-mark small">d<span>.</span></span><span>Data Analyst<small>ANALITIKA PLATFORMASI</small></span></a>
-      <div className="workspace-label"><span className="avatar">{user?.username[0]?.toUpperCase()}</span><div><strong>{user?.username}</strong><small>{user?.role === "admin" ? "Administrator" : "Ish maydoni"}</small></div></div>
+      <div className="workspace-label"><span className="avatar">{user?.username[0]?.toUpperCase()}</span><div><strong>{user?.google_email ?? user?.username}</strong><small>{user?.role === "admin" ? "Administrator" : "Ish maydoni"}</small></div></div>
       <div className="sidebar-section"><span>FAYLLAR</span><span className="count-badge">{datasets.length}</span></div>
       <nav id="dataset-list" aria-label="Yuklangan fayllar" className="dataset-list">
         {datasets.length === 0 && <p className="sidebar-empty">Hali fayl yuklanmagan.</p>}
@@ -264,6 +301,11 @@ export default function Workspace() {
       </nav>
       <button id="add-file" className="sidebar-add" type="button" onClick={() => setShowUpload(true)}>＋ &nbsp; Yangi fayl yuklash</button>
       <div className="sidebar-bottom">
+        {googleStatus?.configured && <div className="google-link-control">
+          {user?.google_email
+            ? <p className="google-linked">✓ Google: {user.google_email}</p>
+            : <button type="button" className="google-link-button" onClick={() => void startGoogle(true)} disabled={busy}><GoogleMark /> Google hisobini bog‘lash</button>}
+        </div>}
         {user?.role === "admin" && <details className="admin-panel"><summary>＋ Xodim hisobi</summary><form onSubmit={addUser} className="form-stack"><label>Login<input value={newUsername} onChange={e => setNewUsername(e.target.value)} minLength={3} maxLength={64} pattern="[a-zA-Z0-9_.\-]+" required /></label><label>Parol<input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} minLength={12} maxLength={128} required /></label><button className="button secondary" type="submit" disabled={busy}>Hisob yaratish</button><p role="status">{userMessage}</p></form></details>}
         <div className="secure-note"><span className="online-dot"/>Hisoblash shu serverda<small>Fayl qatorlari AIga yuborilmaydi.</small></div>
         <button id="logout-button" className="logout-button" onClick={() => void logout()} disabled={busy}>↪ &nbsp; Hisobdan chiqish</button>
@@ -300,9 +342,18 @@ export default function Workspace() {
         {result && <Results analysis={result}/>}
         {history.length > 0 && <section className="history-panel"><div className="history-heading"><h2>Oldingi tahlillar</h2><span>{history.length} ta natija</span></div><div id="history-list">{history.map(item => <button key={item.id} className="history-item" type="button" onClick={() => setResult(item)}><span><strong>{item.request?.operation ?? "Agent"}</strong><small>{item.result?.summary ?? "Natija"}</small></span><time>{shortDate(item.created_at)}</time></button>)}</div></section>}
       </div>}
-      <footer className="page-footer"><span>Data Analyst · Ma’lumotga asoslangan qarorlar</span><span>v0.4 · React + TypeScript + Next.js</span></footer>
+      <footer className="page-footer"><span>Data Analyst · Ma’lumotga asoslangan qarorlar</span><span>v0.5 · React + TypeScript + Next.js</span></footer>
     </div></main>
   </div>;
 }
 
 function message(cause: unknown) { return cause instanceof Error ? cause.message : "So‘rov bajarilmadi. Qayta urinib ko‘ring."; }
+
+function GoogleMark() {
+  return <svg viewBox="0 0 48 48" aria-hidden="true" className="google-mark">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.27 5.48-4.79 7.18l7.73 6C44.39 38.03 46.98 31.68 46.98 24.55z"/>
+    <path fill="#FBBC05" d="M10.53 28.59A14.41 14.41 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.97-6.2A23.89 23.89 0 0 0 0 24c0 3.87.93 7.52 2.56 10.79l7.97-6.2z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.92-2.13 15.89-5.8l-7.73-6c-2.14 1.44-4.88 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.97 6.2C6.51 42.62 14.62 48 24 48z"/>
+  </svg>;
+}

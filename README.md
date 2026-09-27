@@ -2,7 +2,7 @@
 
 CSV yoki Excel jadvaliga oddiy tilda savol bering. Gemini tahlil rejasini va Python kodini yozadi; kod lokal, tarmoqsiz muhitda hisoblaydi. Ko‘rsatiladigan natija mustaqil Pandas hisoblashlari bilan solishtiriladi.
 
-**v0.4 — Next.js/React/TypeScript interfeysi, Gemini agenti, login va foydalanuvchiga tegishli ish maydoni.** Tayyor tahlillar kalitsiz ham ishlaydi. Kompaniya pilot serveri uchun [deployment yo‘riqnomasi](docs/DEPLOYMENT.md) bor; tashqi serverga hali o‘rnatilmagan. Billing va prognoz kiritilmagan.
+**v0.5 — Next.js/React/TypeScript interfeysi, Gemini agenti, lokal va Google login, foydalanuvchiga tegishli ish maydoni.** Tayyor tahlillar kalitsiz ham ishlaydi. Kompaniya pilot serveri uchun [deployment yo‘riqnomasi](docs/DEPLOYMENT.md) bor; tashqi serverga hali o‘rnatilmagan. Billing va prognoz kiritilmagan.
 
 ## Kompaniyaga foydasi
 
@@ -30,7 +30,7 @@ bash scripts/run.sh
 
 Brauzer: <http://127.0.0.1:8000> · API: <http://127.0.0.1:8000/docs>
 
-Birinchi ochishda administrator loginini va kamida 12 belgili parolni yarating. Mavjud lokal fayllar shu birinchi hisobga biriktiriladi. Keyingi xodim hisoblarini yon paneldagi **Xodim hisobi yaratish** bo‘limidan oching. Har bir hisob faqat o‘z fayl va natijalarini ko‘radi.
+Birinchi ochishda administrator loginini va kamida 12 belgili parolni yarating. Google kirishini yoqish uchun [Google OAuth sozlash yo‘riqnomasi](docs/GOOGLE_LOGIN.md)ga qarang; Gemini API kaliti login credentiali emas. Mavjud lokal fayllar shu birinchi hisobga biriktiriladi. Keyingi xodim hisoblarini yon paneldagi **Xodim hisobi yaratish** bo‘limidan oching. Har bir hisob faqat o‘z fayl va natijalarini ko‘radi.
 
 `.env` avtomatik o‘qiladi; eksport qilingan environment o‘zgaruvchilari undan ustun. `.env`dagi `GEMINI_API_KEY=` qiymatini lokal kiriting. Kalit Gitga, frontendga va loglarga yuborilmaydi. Sozlama o‘zgarsa serverni qayta ishga tushiring. Frontend kodini o‘zgartirsangiz `npm run build --prefix frontend` va server restartini bajaring; CSP yangi Next.js skript hashlarini restartda hisoblaydi.
 
@@ -51,6 +51,8 @@ Port band bo‘lsa: `ANALYST_PORT=8001 bash scripts/run.sh`. Bitta process ishla
 | `ANALYST_JOB_TIMEOUT` | Default bitta hisoblashga `60` soniya |
 | `ANALYST_PUBLIC_ORIGIN` | Lokal: bo‘sh; server: `https://analyst.company.uz` |
 | `ANALYST_SESSION_HOURS` | Sessiya muddati; default `12`, 1..168 soat |
+| `ANALYST_GOOGLE_CLIENT_ID` / `ANALYST_GOOGLE_CLIENT_SECRET` | Google OAuth web client credentiallari |
+| `ANALYST_GOOGLE_ALLOWED_DOMAIN` | Ixtiyoriy tasdiqlangan Google Workspace domeni |
 
 Kalit [Google AI Studio](https://aistudio.google.com/api-keys) orqali olinadi. Gemini ilovasidagi Pro obunani cheksiz API kvotasi deb qabul qilmang; loyihangizning [API billing va kvotasini](https://ai.google.dev/gemini-api/docs/billing) tekshiring. Adapter Google’ning [rasmiy compatibility API](https://ai.google.dev/gemini-api/docs/openai) shartnomasidan foydalanadi.
 
@@ -100,6 +102,8 @@ Parol esdan chiqsa, loyiha katalogida:
 Parol terminalda yashirin so‘raladi. Yangilash foydalanuvchining barcha eski sessiyalarini yopadi.
 
 ## API
+
+Google kirishi uchun `GET /api/v1/auth/google/status`, `GET /auth/google/start`, `GET /auth/google/callback` va login sessiyasi bilan `POST /auth/google/link` bor. OAuth javob kodi faqat backendda almashiladi; Google Secret brauzerga yuborilmaydi.
 
 Cookie sessiyasi kerak. `GET /api/v1/auth/me` joriy hisob va `csrf_token`ni qaytaradi; POST/DELETE so‘rovlarida uni `X-CSRF-Token` headeriga qo‘ying. `health`, `demo.csv`, `auth/me`, `auth/login`, lokal birinchi `auth/setup` login talab qilmaydi. Login/setup JSON `{username, password}` qabul qiladi.
 
