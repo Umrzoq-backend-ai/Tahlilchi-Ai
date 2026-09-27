@@ -189,4 +189,4 @@ Avtomatlashtirishda `ANALYST_TEST_USERNAME` va `ANALYST_TEST_PASSWORD` environme
 
 Test Next.js build qilingan serverda sintetik dataset yaratadi va o‘z faylini tozalaydi. Skrinshotlar `/tmp/analyst-screenshots/`ga yoziladi.
 
-Keyingi ishlar: kompaniyaning real ustunlari uchun biznes ta’riflari va evaluation datasetlari; tashkilot/team sharing; durable queue va PostgreSQL; parser izolyatsiyasi; public deployment. To‘liq maqsad: [arxitektura](docs/PROJECT_ANALYSIS.md), [texnik topshiriq](docs/TECHNICAL_SPEC.md).
+Keyingi ishlar: kompaniyaning real ustunlari uchun biznes ta’riflari va reference javoblar; tashkilot/team sharing; durable queue va PostgreSQL; parser izolyatsiyasi; public deployment. Sun’iy reference tekshiruvi [`evaluation/README.md`](evaluation/README.md)da, joriy pilot holati esa [`docs/PILOT_READINESS.md`](docs/PILOT_READINESS.md)da. To‘liq maqsad: [arxitektura](docs/PROJECT_ANALYSIS.md), [texnik topshiriq](docs/TECHNICAL_SPEC.md).

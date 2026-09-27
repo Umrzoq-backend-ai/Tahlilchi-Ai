@@ -1,0 +1,334 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "monthly_revenue",
+      "question": "order_date YYYY-MM-DD formatida. Har oy uchun amount yig‘indisini hisobla.",
+      "csv": "order_date,amount\n2026-01-03,120\n2026-01-08,80\n2026-02-01,150\n",
+      "request": {
+        "operation": "monthly",
+        "group_column": "order_date",
+        "value_column": "amount"
+      },
+      "expected_columns": [
+        "group",
+        "value"
+      ],
+      "expected_rows": [
+        [
+          "2026-01",
+          200
+        ],
+        [
+          "2026-02",
+          150
+        ]
+      ]
+    },
+    {
+      "id": "top_cities",
+      "question": "amount yig‘indisi bo‘yicha eng yuqori 2 city guruhini ko‘rsat.",
+      "csv": "city,amount\nToshkent,100\nBuxoro,60\nToshkent,30\nSamarqand,90\n",
+      "request": {
+        "operation": "group",
+        "group_column": "city",
+        "value_column": "amount",
+        "top_n": 2
+      },
+      "expected_columns": [
+        "group",
+        "value"
+      ],
+      "expected_rows": [
+        [
+          "Toshkent",
+          130
+        ],
+        [
+          "Samarqand",
+          90
+        ]
+      ]
+    },
+    {
+      "id": "filtered_revenue",
+      "question": "city Toshkent bo‘lgan qatorlarda amount yig‘indisi qancha?",
+      "csv": "city,amount\nToshkent,100\nToshkent,80\nBuxoro,30\n",
+      "request": {
+        "operation": "metric",
+        "value_column": "amount",
+        "filters": [
+          {
+            "column": "city",
+            "operator": "eq",
+            "value": "Toshkent"
+          }
+        ]
+      },
+      "expected_columns": [
+        "metric",
+        "value"
+      ],
+      "expected_rows": [
+        [
+          "sum",
+          180
+        ]
+      ]
+    },
+    {
+      "id": "negative_net",
+      "question": "category bo‘yicha amount yig‘indisini hisobla; manfiy qiymatlarni ham qo‘sh.",
+      "csv": "category,amount\nA,100\nA,-30\nB,40\n",
+      "request": {
+        "operation": "group",
+        "group_column": "category",
+        "value_column": "amount"
+      },
+      "expected_columns": [
+        "group",
+        "value"
+      ],
+      "expected_rows": [
+        [
+          "A",
+          70
+        ],
+        [
+          "B",
+          40
+        ]
+      ]
+    },
+    {
+      "id": "missing_quality",
+      "question": "Har bir ustundagi bo‘sh kataklar soni va foizini ko‘rsat.",
+      "csv": "city,amount\nToshkent,10\n,20\nBuxoro,\n",
+      "request": {
+        "operation": "missing"
+      },
+      "expected_columns": [
+        "ustun",
+        "bo‘sh",
+        "foiz"
+      ],
+      "expected_rows": [
+        [
+          "city",
+          1,
+          33.33
+        ],
+        [
+          "amount",
+          1,
+          33.33
+        ]
+      ]
+    },
+    {
+      "id": "count_including_blank_amount",
+      "question": "city bo‘yicha qatorlar sonini hisobla; amount bo‘sh bo‘lsa ham qatorni sana.",
+      "csv": "city,amount\nA,10\nA,\nB,3\n",
+      "request": {
+        "operation": "group",
+        "group_column": "city",
+        "aggregation": "count"
+      },
+      "expected_columns": [
+        "group",
+        "value"
+      ],
+      "expected_rows": [
+        [
+          "A",
+          2
+        ],
+        [
+          "B",
+          1
+        ]
+      ]
+    },
+    {
+      "id": "average_excluding_blank",
+      "question": "branch bo‘yicha amount o‘rtacha qiymatini hisobla; bo‘sh amountni qo‘shma.",
+      "csv": "branch,amount\nA,10\nA,20\nB,100\nB,\n",
+      "request": {
+        "operation": "group",
+        "group_column": "branch",
+        "value_column": "amount",
+        "aggregation": "mean"
+      },
+      "expected_columns": [
+        "group",
+        "value"
+      ],
+      "expected_rows": [
+        [
+          "B",
+          100
+        ],
+        [
+          "A",
+          15
+        ]
+      ]
+    },
+    {
+      "id": "custom_date_format",
+      "question": "order_date DD/MM/YYYY formatida. Har oy uchun amount yig‘indisini hisobla.",
+      "csv": "order_date,amount\n01/02/2026,10\n28/02/2026,15\n01/03/2026,7\n",
+      "request": {
+        "operation": "monthly",
+        "group_column": "order_date",
+        "value_column": "amount",
+        "date_format": "%d/%m/%Y"
+      },
+      "expected_columns": [
+        "group",
+        "value"
+      ],
+      "expected_rows": [
+        [
+          "2026-02",
+          25
+        ],
+        [
+          "2026-03",
+          7
+        ]
+      ]
+    },
+    {
+      "id": "bottom_products",
+      "question": "amount yig‘indisi eng past 2 product guruhini ko‘rsat.",
+      "csv": "product,amount\nA,30\nB,10\nC,20\n",
+      "request": {
+        "operation": "group",
+        "group_column": "product",
+        "value_column": "amount",
+        "top_n": 2,
+        "ascending": true
+      },
+      "expected_columns": [
+        "group",
+        "value"
+      ],
+      "expected_rows": [
+        [
+          "B",
+          10
+        ],
+        [
+          "C",
+          20
+        ]
+      ]
+    },
+    {
+      "id": "filtered_row_count",
+      "question": "status paid bo‘lgan qatorlar soni qancha?",
+      "csv": "status,amount\npaid,100\npending,50\npaid,20\n",
+      "request": {
+        "operation": "metric",
+        "aggregation": "count",
+        "filters": [
+          {
+            "column": "status",
+            "operator": "eq",
+            "value": "paid"
+          }
+        ]
+      },
+      "expected_columns": [
+        "metric",
+        "value"
+      ],
+      "expected_rows": [
+        [
+          "count",
+          2
+        ]
+      ]
+    },
+    {
+      "id": "numeric_overview",
+      "question": "Sonli ustunlarning minimum, maksimum, o‘rtacha va medianasini ko‘rsat.",
+      "csv": "amount,quantity,code\n10,2,A\n20,4,B\n30,6,C\n",
+      "request": {
+        "operation": "overview"
+      },
+      "expected_columns": [
+        "ustun",
+        "soni",
+        "minimum",
+        "maksimum",
+        "o‘rtacha",
+        "mediana"
+      ],
+      "expected_rows": [
+        [
+          "amount",
+          3,
+          10,
+          30,
+          20,
+          20
+        ],
+        [
+          "quantity",
+          3,
+          2,
+          6,
+          4,
+          4
+        ]
+      ]
+    },
+    {
+      "id": "duplicate_rows_retained",
+      "question": "category bo‘yicha qatorlar sonini hisobla; dublikatlar ham hisobda qolsin.",
+      "csv": "category,amount\nA,10\nA,10\nB,5\n",
+      "request": {
+        "operation": "group",
+        "group_column": "category",
+        "aggregation": "count"
+      },
+      "expected_columns": [
+        "group",
+        "value"
+      ],
+      "expected_rows": [
+        [
+          "A",
+          2
+        ],
+        [
+          "B",
+          1
+        ]
+      ],
+      "expected_profile": {
+        "duplicate_rows": 1
+      }
+    },
+    {
+      "id": "ambiguous_date_guard",
+      "question": "date ustuni qaysi formatda ekanini bilmayman. date bo‘yicha oylik amount yig‘indisini hisobla.",
+      "csv": "date,amount\n01/02/2026,10\n02/03/2026,20\n",
+      "request": {
+        "operation": "monthly",
+        "group_column": "date",
+        "value_column": "amount"
+      },
+      "expected_error": "AMBIGUOUS_DATE",
+      "expected_action": "clarify"
+    },
+    {
+      "id": "forecast_guard",
+      "question": "Kelasi oy amount qiymatini prognoz qil.",
+      "csv": "order_date,amount\n2026-01-01,10\n2026-02-01,20\n",
+      "expected_action": "unsupported"
+    }
+  ]
+}
