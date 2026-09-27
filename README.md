@@ -124,6 +124,7 @@ Cookie sessiyasi kerak. `GET /api/v1/auth/me` joriy hisob va `csrf_token`ni qayt
 | `WS /api/v1/runs/{id}/events/ws` | Real vaqt progress |
 | `POST /api/v1/runs/{id}/cancel` | Bekor qilish so‘rovi |
 | `POST/GET /api/v1/datasets/{id}/analyses` | Tayyor tahlil / natijalar tarixi |
+| `GET /api/v1/datasets/{id}/analyses/{analysis_id}/export.csv` | Tegishli natijaning ko‘rsatilgan jadvalini xavfsiz CSVga eksport qilish |
 | `DELETE /api/v1/datasets/{id}` | Raw fayl, metadata, run va tahlillarni o‘chirish |
 
 Brauzer persisted REST pollingdan foydalanadi; WebSocket API ham mavjud. Refreshdan keyin aktiv run qayta kuzatiladi. Server qayta ishga tushsa tugallanmagan run `INTERRUPTED` bilan tugaydi; model xarajatini takrorlamaslik uchun avtomatik qayta bajarilmaydi. Cancel joriy bloklovchi model/sandbox chaqiruvi tugaganda kuchga kiradi.
@@ -162,7 +163,7 @@ scripts/browser_smoke.py   # Ixtiyoriy haqiqiy Gemini/browser testi
 - Bubblewrap lokal izolyatsiya qatlamidir. Ommaviy, ko‘p mijozli muhit uchun alohida host/VM, seccomp/cgroup siyosati va mustaqil xavfsizlik tekshiruvi kerak; bular hali bajarilmagan.
 - Trusted parser/reference worker hozir resurslari cheklangan host process. Generated kod bu yo‘ldan bajarilmaydi; parserni ham namespacega ko‘chirish keyingi mustahkamlash ishidir.
 - Upload: 20 MiB, 100 000 qator, 100 ustun; XLSX 20 sheet va 200 MiB expanded hajmgacha. Multipartni framework vaqtincha diskka yozishi mumkin; deployment Caddy shablonida ingress limiti 21 MiB; lokal serverda reverse proxy yo‘q.
-- Preview 20 qator, natija 100 qator, grafik 24 guruhgacha. Validator ko‘rsatiladigan kataklar va umumiy o‘lchamlarni tekshiradi; eksport ham shu natijadan iborat.
+- Preview 20 qator, natija 100 qator, grafik 24 guruhgacha. Validator ko‘rsatiladigan kataklar va umumiy o‘lchamlarni tekshiradi. CSV eksport faqat ko‘rsatilgan natija qatorlarini beradi; CSVdagi formula sifatida talqin qilinishi mumkin bo‘lgan matn boshiga apostrof qo‘shiladi. JSON eksportda provenance ham bor.
 - CSV UTF-8/BOM; bo‘sh katak missing, `NA` matni saqlanadi. Sana formati aniq tanlanadi; timezone va lokal decimal avtomatik taxmin qilinmaydi. Excel formulasi bajarilmaydi, cached qiymat o‘qiladi.
 
 ## Tekshirish

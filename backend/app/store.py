@@ -95,6 +95,14 @@ class Store:
                 ),
             )
 
+    def get_analysis(self, dataset_id: str, analysis_id: str) -> dict | None:
+        with self.connect() as db:
+            row = db.execute(
+                "SELECT document FROM analyses WHERE id=? AND dataset_id=?",
+                (analysis_id, dataset_id),
+            ).fetchone()
+        return json.loads(row[0]) if row else None
+
     def list_analyses(self, dataset_id: str) -> list[dict]:
         with self.connect() as db:
             rows = db.execute(

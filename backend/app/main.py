@@ -29,6 +29,7 @@ from app.agent.orchestrator import TERMINAL, AgentService
 from app.auth import COOKIE, AuthService, Credentials, csrf_token
 from app.config import PROJECT_ROOT, Settings
 from app.errors import AppError
+from app.export import render_preview_csv
 from app.google_oauth import STATE_COOKIE, GoogleOAuth
 from app.schemas import AnalysisRequest
 from app.services import DatasetService
@@ -406,6 +407,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def history(dataset_id: UUID, request: Request):
         request.app.state.service.get(str(dataset_id))
         return request.app.state.service.store.list_analyses(str(dataset_id))
+
+    @app.get("/api/v1/datasets/{dataset_id}/analyses/{analysis_id}/export.csv")
+    def export_analysis_csv(dataset_id: UUID, analysis_id: UUID, request: Request):
+        request.app.state.service.get(str(dataset_id))
+        analysis = request.app.state.service.store.get_analysis(str(dataset_id), str(analysis_id))
+        if analysis is None:
+            raise AppError("NOT_FOUND", "Tahlil natijasi topilmadi.", 404)
+        table = analysis["result"]["table"]
+        return Response(
+            render_preview_csv(table),
+            media_type="text/csv; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="analysis-{analysis_id}-preview.csv"',
+                "X-Export-Truncated": "true" if table.get("truncated") else "false",
+            },
+        )
 
     @app.get("/api/v1/agent/status")
     def agent_status(request: Request):

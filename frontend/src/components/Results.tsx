@@ -41,14 +41,14 @@ export function BarChart({ chart }: { chart: Chart }) {
 }
 
 export default function Results({ analysis }: { analysis: Analysis }) {
-  function download() {
+  function downloadJson() {
     const url = URL.createObjectURL(new Blob([JSON.stringify(analysis, null, 2)], { type: "application/json" }));
     const link = document.createElement("a"); link.href = url; link.download = `analysis-${analysis.id}.json`;
     document.body.append(link); link.click(); link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   return <section className="card result-card" id="result-panel" aria-live="polite">
-    <div className="card-heading"><div><span className="step-icon success">✓</span><div><p className="eyebrow">TAYYOR NATIJA</p><h2>Tahlil natijasi</h2></div></div><button id="download-result" className="quiet-button" onClick={download}>JSON yuklab olish ↓</button></div>
+    <div className="card-heading"><div><span className="step-icon success">✓</span><div><p className="eyebrow">TAYYOR NATIJA</p><h2>Tahlil natijasi</h2></div></div><div className="export-actions"><a id="download-csv" className="quiet-button" href={`/api/v1/datasets/${analysis.dataset_id}/analyses/${analysis.id}/export.csv`} download>CSV yuklab olish ↓</a><button id="download-result" className="quiet-button" onClick={downloadJson}>JSON yuklab olish ↓</button>{analysis.result.table.truncated && <small>CSVda ko‘rsatilgan {analysis.result.table.rows.length} qator bor</small>}</div></div>
     <p id="result-summary" className="result-summary">{analysis.result.summary}</p>
     {analysis.result.warnings.length > 0 && <div className="warnings">{analysis.result.warnings.map((warning, index) => <p key={index}>{warning}</p>)}</div>}
     {analysis.result.chart && <BarChart chart={analysis.result.chart}/>}

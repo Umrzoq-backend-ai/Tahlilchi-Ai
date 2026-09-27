@@ -90,6 +90,9 @@ with sync_playwright() as playwright:
         expect(page.locator("#chart svg rect")).to_have_count(6)
         expect(page.locator(".history-item")).to_have_count(1)
         expect(page.locator("#analyze-button")).to_be_enabled()
+        with page.expect_download() as csv_download:
+            page.locator("#download-csv").click()
+        assert csv_download.value.suggested_filename.endswith("-preview.csv")
         with page.expect_download() as download:
             page.locator("#download-result").click()
         assert download.value.suggested_filename.endswith(".json")
