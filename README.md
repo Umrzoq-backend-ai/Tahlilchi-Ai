@@ -1,6 +1,6 @@
 # Data Analyst — Gemini agenti
 
-CSV yoki Excel jadvaliga oddiy tilda savol bering. Gemini tahlil rejasini va Python kodini yozadi; kod lokal, tarmoqsiz muhitda hisoblaydi. Ko‘rsatiladigan natija mustaqil Pandas hisoblashlari bilan solishtiriladi.
+CSV yoki Excel jadvaliga oddiy tilda savol bering. Gemini tahlil rejasini va Python kodini yozadi; kod lokal, tarmoqsiz muhitda hisoblaydi. Ko‘rsatiladigan natija mustaqil Pandas hisoblashlari bilan solishtiriladi. Bir nechta savolni yangi qatorda `1.`, `2.`, `3.` deb yozsangiz, interfeys ularni navbat bilan alohida tekshiradi.
 
 **v0.5 — Next.js/React/TypeScript interfeysi, Gemini agenti, lokal va Google login, foydalanuvchiga tegishli ish maydoni.** Tayyor tahlillar kalitsiz ham ishlaydi. Kompaniya pilot serveri uchun [deployment yo‘riqnomasi](docs/DEPLOYMENT.md) bor; tashqi serverga hali o‘rnatilmagan. Billing va prognoz kiritilmagan.
 
@@ -8,7 +8,7 @@ CSV yoki Excel jadvaliga oddiy tilda savol bering. Gemini tahlil rejasini va Pyt
 
 - Savdo va xarajat fayllarida davriy hisobotni tez tayyorlash.
 - Hudud/kategoriya kesimida yig‘indi, o‘rtacha, top/bottom guruhlarni solishtirish.
-- Bo‘sh qiymat va dublikatlarni aniqlab, ma’lumot sifatini tekshirish.
+- Bo‘sh qiymat va aynan takroriy qatorlarni aniqlab, ma’lumot sifatini tekshirish.
 - Javob bilan birga hisoblash rejasi, dataset hash, kod va parametrlarni saqlash.
 
 Natijaning biznes ma’nosi ustunlar va savolning to‘g‘ri talqiniga bog‘liq. Raqamlarni tekshirish foyda yoki qaror to‘g‘riligini kafolatlamaydi; reja interfeysda ko‘rinadi.
@@ -65,7 +65,7 @@ Tashqi modelga savol, ustun nomlari/turlari, reja va qayta tuzatish uchun yarati
    - `Har bir oy uchun amount yig‘indisini hisobla va barcha oylarni chiqar.`
    - `city ustuni Toshkent bo‘lgan qatorlardagi amount yig‘indisini hisobla.`
    - `amount yig‘indisi bo‘yicha eng yuqori 5 category guruhini ko‘rsat.`
-3. Jarayon holati va natijani kuting. Agent aniqlik so‘rasa, shu maydonda javob yozing.
+3. Jarayon holati va natijani kuting. Bir nechta savol uchun har birini alohida qatorda `1.`, `2.`, `3.` deb boshlang (ko‘pi bilan 5 ta); ular ketma-ket bajariladi. Agent aniqlik so‘rasa, shu maydonda javob yozing.
 4. Reja, grafik, jadval va hisoblash manbasini ko‘ring; zarur bo‘lsa JSON yuklab oling.
 
 Namuna uchun eng yuqori oy — **2026-03, 3 400 000**. Toshkent bo‘yicha yig‘indi — **3 280 000**. Datasetda valuta belgilanmagan; tizim valuta qo‘shmaydi.
@@ -85,9 +85,9 @@ Chegaralar: ikki parallel agent ishi; har run 180 soniya; jami ko‘pi bilan 5 H
 
 ## Qo‘llanadigan tahlillar
 
-`overview`, `missing`, `metric`, `group`, `monthly`; `sum`, `mean`, `count` (qatorlar soni); 5 tagacha AND filter (`eq/ne/gt/gte/lt/lte`); top/bottom N.
+`overview`, `missing`, `quality` (jami bo‘sh kataklar va aynan takroriy qatorlar), `metric`, `group`, `monthly`; `sum`, `mean`, `count` (qatorlar soni); 5 tagacha AND filter (`eq/ne/gt/gte/lt/lte`); top/bottom N.
 
-Join, OR filter, unique mijozlar soni, foyda formulasi, valuta konvertatsiyasi, korrelatsiya, prognoz va sabab-oqibat tahlili bu versiyaning tasdiqlangan amallari emas. Agentga bitta qo‘llanadigan hisoblash rejasi kerak. Savolning biznes jihatdan to‘g‘ri talqinini avtomatik matematik tekshiruv isbotlamaydi.
+Join, OR filter, unique mijozlar soni, foyda formulasi, valuta konvertatsiyasi, korrelatsiya, prognoz va sabab-oqibat tahlili bu versiyaning tasdiqlangan amallari emas. Har agent runiga bitta qo‘llanadigan hisoblash rejasi kerak. Raqamlangan savollar interfeysda alohida runlarga navbatlanadi; sahifa yopilsa hali yuborilmagan savollar saqlanmaydi. AI kvotasi tugasa navbat to‘xtaydi, bajarilgan natijalar tarixda qoladi. Savolning biznes jihatdan to‘g‘ri talqinini avtomatik matematik tekshiruv isbotlamaydi.
 
 ## Login va hisoblar
 

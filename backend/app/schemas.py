@@ -13,7 +13,7 @@ class DataFilter(BaseModel):
 class AnalysisRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
-    operation: Literal["overview", "missing", "group", "monthly", "metric"]
+    operation: Literal["overview", "missing", "quality", "group", "monthly", "metric"]
     group_column: str | None = Field(default=None, max_length=200)
     value_column: str | None = Field(default=None, max_length=200)
     aggregation: Literal["sum", "mean", "count"] = "sum"

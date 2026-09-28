@@ -12,7 +12,7 @@ export type Dataset = {
 };
 export type Chart = { title: string; labels: string[]; values: (number | null)[]; shown: number; total: number };
 export type AnalysisRequest = {
-  operation: "overview" | "missing" | "group" | "monthly" | "metric";
+  operation: "overview" | "missing" | "quality" | "group" | "monthly" | "metric";
   group_column?: string | null; value_column?: string | null;
   aggregation?: "sum" | "mean" | "count"; date_format?: string;
   top_n?: number | null; ascending?: boolean;

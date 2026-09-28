@@ -247,3 +247,12 @@ def test_monthly_result_discloses_chosen_date_format():
     frame = pd.DataFrame({"date": ["2026-01-01"], "value": [10]})
     result = run(frame, operation="monthly", group_column="date", value_column="value")
     assert "Sana YYYY-MM-DD formatida talqin qilindi." in result["warnings"]
+
+
+def test_quality_counts_empty_cells_and_exact_duplicate_rows():
+    frame = pd.DataFrame({"city": ["A", "A", "B", None], "amount": [10, 10, None, 5]})
+    result = run(frame, operation="quality")
+    assert result["table"]["columns"] == ["ko‘rsatkich", "soni"]
+    assert result["table"]["rows"] == [["bo‘sh kataklar", 2], ["takroriy qatorlar", 1]]
+    assert "2 ta bo‘sh katak" in result["summary"]
+    assert "1 ta aynan takroriy qator" in result["summary"]

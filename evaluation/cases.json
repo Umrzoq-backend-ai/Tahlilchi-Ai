@@ -2,6 +2,28 @@
   "version": 1,
   "cases": [
     {
+      "id": "missing_and_exact_duplicates",
+      "question": "Jadvalda nechta bo‘sh katak va nechta aynan bir xil takrorlangan qator bor?",
+      "csv": "city,amount\nA,10\nA,10\nB,\n,5\n",
+      "request": {
+        "operation": "quality"
+      },
+      "expected_columns": [
+        "ko‘rsatkich",
+        "soni"
+      ],
+      "expected_rows": [
+        [
+          "bo‘sh kataklar",
+          2
+        ],
+        [
+          "takroriy qatorlar",
+          1
+        ]
+      ]
+    },
+    {
       "id": "validated_iso_date_without_user_format",
       "question": "Har oy uchun amount yig‘indisini hisobla.",
       "csv": "order_date,amount\n2026-01-03,125\n2026-01-08,75\n2026-02-01,155\n",

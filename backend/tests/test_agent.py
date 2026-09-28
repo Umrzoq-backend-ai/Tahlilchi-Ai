@@ -103,6 +103,30 @@ def test_real_sandbox_repair_and_idempotency(agent_client):
     assert client.get(f"/api/v1/runs/{run['id']}").status_code == 404
 
 
+def test_quality_question_is_verified_in_sandbox(agent_client):
+    client, dataset_id = agent_client
+    quality_plan = {
+        "action": "analyze",
+        "analysis": AnalysisRequest(operation="quality").model_dump(),
+        "explanation": "Bo‘sh kataklar va aynan takrorlangan qatorlarni hisoblayman.",
+        "clarification": None,
+    }
+    code = """result = pd.DataFrame({'ko‘rsatkich': ['bo‘sh kataklar', 'takroriy qatorlar'], 'soni': [int(df.isna().sum().sum()), int(df.duplicated().sum())]})"""
+    client.app.state.agent.provider = FakeProvider([quality_plan, {"code": code}])
+    run = wait(
+        client,
+        submit(client, dataset_id, question="Nechta bo‘sh katak va takroriy qator bor?").json()[
+            "id"
+        ],
+    )
+    assert run["status"] == "succeeded", run
+    assert run["analysis"]["result"]["table"]["rows"] == [
+        ["bo‘sh kataklar", 1],
+        ["takroriy qatorlar", 0],
+    ]
+    assert run["attempts"][0]["status"] == "verified"
+
+
 def test_wrong_numbers_never_become_answer(agent_client):
     client, dataset_id = agent_client
     fake = FakeProvider(

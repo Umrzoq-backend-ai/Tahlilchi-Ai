@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type DragEvent, type FormEvent } from "react";
 import { api, jsonBody, setCsrfToken } from "@/lib/api";
+import { splitNumberedQuestions } from "@/lib/questions";
 import type { AgentRun, AgentStatus, Analysis, AnalysisRequest, Dataset, GoogleStatus, Health, Profile, Session, User } from "@/lib/types";
 import { DataTable } from "./Results";
 import Results from "./Results";
@@ -42,6 +43,11 @@ export default function Workspace() {
   const [result, setResult] = useState<Analysis | null>(null);
   const [run, setRun] = useState<AgentRun | null>(null);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [batchQuestions, setBatchQuestions] = useState<string[]>([]);
+  const [batchRuns, setBatchRuns] = useState<AgentRun[]>([]);
+  const [batchStopReason, setBatchStopReason] = useState<string | null>(null);
+  const batchQueue = useRef<string[]>([]);
+  const batchCursor = useRef(0);
   const [clarificationFor, setClarificationFor] = useState<string | null>(null);
   const [question, setQuestion] = useState("");
   const [operation, setOperation] = useState<AnalysisRequest["operation"]>("overview");
@@ -65,6 +71,7 @@ export default function Workspace() {
   const openDataset = useCallback(async (id: string) => {
     selectedId.current = id;
     setError(""); setShowUpload(false); setResult(null); setRun(null); setActiveRunId(null); setClarificationFor(null);
+    batchQueue.current = []; batchCursor.current = 0; setBatchQuestions([]); setBatchRuns([]); setBatchStopReason(null);
     const [detail, analyses, runs] = await Promise.all([
       api<Dataset>(`/datasets/${id}`), api<Analysis[]>(`/datasets/${id}/analyses`), api<AgentRun[]>(`/datasets/${id}/runs`),
     ]);
@@ -123,12 +130,29 @@ export default function Workspace() {
         const current = await api<AgentRun>(`/runs/${id}`);
         if (cancelled || selectedId.current !== datasetId) return;
         setRun(current);
+        if (batchQueue.current.length) setBatchRuns(existing => existing.map(item => item.id === id ? current : item));
         if (["queued", "running"].includes(current.status)) { timer = setTimeout(poll, 750); return; }
-        setActiveRunId(null);
         if (current.status === "needs_input") { setClarificationFor(current.id); setQuestion(""); }
         if (current.analysis) setResult(current.analysis);
+        if (current.status === "failed" && ["AI_QUOTA", "AI_AUTH", "AI_CONNECTION", "AI_UNAVAILABLE"].includes(current.error?.code ?? "")) {
+          batchCursor.current = batchQueue.current.length;
+          setBatchStopReason("Gemini cheklovi sabab qolgan savollar yuborilmadi.");
+        }
         setHistory(await api<Analysis[]>(`/datasets/${datasetId}/analyses`));
-      } catch (cause) { if (!cancelled) { setActiveRunId(null); setError(message(cause)); } }
+        if (cancelled || selectedId.current !== datasetId) return;
+        if (batchCursor.current < batchQueue.current.length) {
+          const nextQuestion = batchQueue.current[batchCursor.current];
+          const next = await api<AgentRun>(`/datasets/${datasetId}/questions`, jsonBody({
+            question: nextQuestion, idempotency_key: crypto.randomUUID(),
+          }));
+          if (cancelled || selectedId.current !== datasetId) return;
+          batchCursor.current += 1;
+          setBatchRuns(existing => [...existing, next]);
+          setRun(next); setActiveRunId(next.id);
+        } else {
+          setActiveRunId(null);
+        }
+      } catch (cause) { if (!cancelled) { setActiveRunId(null); if (batchQueue.current.length) setBatchStopReason("Navbat to‘xtadi; xatoni ko‘ring."); setError(message(cause)); } }
     }
     void poll();
     return () => { cancelled = true; clearTimeout(timer); };
@@ -241,9 +265,13 @@ export default function Workspace() {
     await perform(async () => {
       const trimmed = question.trim();
       if (trimmed.length < 3) throw new Error("Savol kamida 3 belgidan iborat bo‘lsin.");
+      const questions = clarificationFor ? [trimmed] : splitNumberedQuestions(trimmed);
       const created = await api<AgentRun>(`/datasets/${dataset.id}/questions`, jsonBody({
-        question: trimmed, idempotency_key: crypto.randomUUID(), clarification_for: clarificationFor,
+        question: questions[0], idempotency_key: crypto.randomUUID(), clarification_for: clarificationFor,
       }));
+      batchQueue.current = questions.length > 1 ? questions : [];
+      batchCursor.current = questions.length > 1 ? 1 : 0;
+      setBatchQuestions(batchQueue.current); setBatchRuns(questions.length > 1 ? [created] : []); setBatchStopReason(null);
       setRun(created); setResult(null); setClarificationFor(null); setActiveRunId(created.id);
     });
   }
@@ -252,7 +280,9 @@ export default function Workspace() {
     if (!activeRunId) return;
     await perform(async () => {
       await api<AgentRun>(`/runs/${activeRunId}/cancel`, { method: "POST" });
-      setNotice("Bekor qilish so‘raldi. Joriy chaqiruv tugashi kutilmoqda.");
+      batchCursor.current = batchQueue.current.length;
+      if (batchQueue.current.length) setBatchStopReason("Qolgan savollar bekor qilindi.");
+      setNotice("Joriy savol bekor qilinmoqda; navbatdagi savollar yuborilmaydi.");
     });
   }
 
@@ -261,6 +291,7 @@ export default function Workspace() {
     await perform(async () => {
       await api<null>(`/datasets/${dataset.id}`, { method: "DELETE" });
       selectedId.current = null; setDataset(null); setResult(null); setHistory([]); setRun(null); setActiveRunId(null);
+      batchQueue.current = []; batchCursor.current = 0; setBatchQuestions([]); setBatchRuns([]); setBatchStopReason(null);
       await refreshList(); setNotice("Fayl va tahlillari o‘chirildi.");
     });
   }
@@ -330,12 +361,21 @@ export default function Workspace() {
         <section className="card preview-card"><div className="card-heading"><div><span className="step-icon">02</span><div><p className="eyebrow">MA’LUMOTGA BIR QARASH</p><h2>Jadval ko‘rinishi</h2></div></div><span className="muted">Dastlabki 20 qator</span></div><DataTable table={profile.preview} label="Dataset preview"/><details className="schema-details"><summary>Ustun turlari va sifati</summary><DataTable label="Ustun turlari" table={{ columns: ["Ustun", "Turi", "Bo‘sh", "Noyob qiymatlar", "Sana formati"], rows: profile.columns.map(c => [c.name, c.kind, c.missing, c.unique, c.date_format_hint === "ISO8601" ? "YYYY-MM-DD" : "—"]) }}/></details></section>
         <section className="card agent-card"><div className="card-heading"><div><span className="step-icon ai">✦</span><div><p className="eyebrow">AI YORDAMCHI</p><h2>Gemini bilan savol bering</h2></div></div><span className={`agent-badge ${agentStatus?.configured ? "enabled" : ""}`}>{agentStatus?.configured ? `${agentStatus.provider} · ${agentStatus.model}` : "Sozlanmagan"}</span></div>
           <p className="card-description">{agentStatus?.message ?? "Agent reja tuzadi, hisoblaydi va natijani mustaqil tekshiradi."}</p>
-          <form onSubmit={ask} className="agent-form"><label htmlFor="question-input">Jadvalingiz haqida savol</label><textarea id="question-input" value={question} onChange={e => setQuestion(e.target.value)} minLength={3} maxLength={2000} rows={3} required placeholder={clarificationFor ? "Agent savoliga aniqlik kiriting…" : "Masalan, qaysi oyda tushum eng yuqori?"} disabled={busy || !agentStatus?.configured}/>
+          <form onSubmit={ask} className="agent-form"><label htmlFor="question-input">Jadvalingiz haqida savol</label><p className="batch-hint">Bir nechta savol uchun har birini yangi qatorda 1., 2., 3. deb boshlang (ko‘pi bilan 5 ta). Har biri alohida tekshiriladi.</p><textarea id="question-input" value={question} onChange={e => setQuestion(e.target.value)} minLength={3} maxLength={2000} rows={3} required placeholder={clarificationFor ? "Agent savoliga aniqlik kiriting…" : "Masalan, qaysi oyda tushum eng yuqori? Yoki 1., 2., 3. deb savollarni alohida yozing."} disabled={busy || !agentStatus?.configured}/>
             <div className="suggestions">{examples.map(example => <button key={example} type="button" onClick={() => { setQuestion(example); setClarificationFor(null); }}>{example}</button>)}</div>
             {clarificationFor && <button type="button" className="quiet-button reset-question" onClick={() => { setClarificationFor(null); setQuestion(""); }}>Yangi mustaqil savol</button>}
             <div className="card-footer"><p>{agentStatus?.data_policy ?? "Savol va ustun nomlari Gemini’ga yuboriladi; fayl qatorlari yuborilmaydi."}</p><button id="ask-button" className="button primary" type="submit" disabled={busy || !!activeRunId || !agentStatus?.configured}>Savol yuborish →</button></div>
           </form>
-          {run && <div id="agent-progress" className="run-progress" aria-live="polite"><div><span className={activeRun ? "working-dot" : "result-dot"}/><span id="agent-stage">{stages[run.stage] ?? run.stage}</span></div>{activeRun && <button id="cancel-run" type="button" className="quiet-button danger" onClick={() => void cancelRun()} disabled={busy}>Bekor qilish</button>}{!activeRun && <p id="agent-message">{run.analysis?.result.summary ?? run.message ?? run.error?.message ?? stages[run.status] ?? run.status}</p>}{run.plan && <details className="provenance"><summary>Agent savolni qanday talqin qildi?</summary><p>{run.plan.explanation}</p><pre>{run.plan.analysis ? JSON.stringify(run.plan.analysis, null, 2) : ""}</pre></details>}</div>}
+          {run && batchQuestions.length === 0 && <div id="agent-progress" className="run-progress" aria-live="polite"><div><span className={activeRun ? "working-dot" : "result-dot"}/><span id="agent-stage">{stages[run.stage] ?? run.stage}</span></div>{activeRun && <button id="cancel-run" type="button" className="quiet-button danger" onClick={() => void cancelRun()} disabled={busy}>Bekor qilish</button>}{!activeRun && <p id="agent-message">{run.analysis?.result.summary ?? run.message ?? run.error?.message ?? stages[run.status] ?? run.status}</p>}{run.plan && <details className="provenance"><summary>Agent savolni qanday talqin qildi?</summary><p>{run.plan.explanation}</p><pre>{run.plan.analysis ? JSON.stringify(run.plan.analysis, null, 2) : ""}</pre></details>}</div>}
+          {batchQuestions.length > 0 && <div id="batch-results" className="batch-results" aria-live="polite"><div className="batch-title"><h3>Savollar bo‘yicha natijalar</h3>{activeRun && <button id="cancel-run" type="button" className="quiet-button danger" onClick={() => void cancelRun()} disabled={busy}>Navbatni bekor qilish</button>}</div>{batchQuestions.map((item, index) => {
+            const itemRun = batchRuns[index];
+            return <article key={`${index}-${item}`} className="batch-item" data-status={itemRun?.status ?? (batchStopReason ? "stopped" : "pending")}><div className="batch-item-head"><strong>{index + 1}. {item}</strong><span>{itemRun ? (stages[itemRun.stage] ?? itemRun.status) : (batchStopReason ?? "Navbatda")}</span></div>
+              {itemRun?.analysis && <><p>{itemRun.analysis.result.summary}</p><DataTable table={itemRun.analysis.result.table} label={`${index + 1}-savol natijasi`}/><button type="button" className="quiet-button" onClick={() => setResult(itemRun.analysis ?? null)}>To‘liq natija va grafikni ko‘rish ↗</button></>}
+              {itemRun?.status === "needs_input" && <><p>{itemRun.message}</p><button type="button" className="quiet-button" onClick={() => { setClarificationFor(itemRun.id); setQuestion(""); document.getElementById("question-input")?.focus(); }}>Aniqlik kiritish ↗</button></>}
+              {itemRun?.status === "unsupported" && <p>{itemRun.message ?? "Bu savol hozir qo‘llanmaydi."}</p>}
+              {itemRun?.status === "failed" && <p className="danger">{itemRun.error?.message ?? "Hisoblash tugallanmadi."}</p>}
+            </article>;
+          })}</div>}
         </section>
         <section className="card analysis-card"><div className="card-heading"><div><span className="step-icon">03</span><div><p className="eyebrow">TAYYOR HISOBLASHLAR</p><h2>Tezkor tahlil</h2></div></div><span className="muted">API kalitisiz ishlaydi</span></div><p className="card-description">Hisoblash fayldagi haqiqiy qiymatlar asosida bajariladi.</p><form onSubmit={analyze}><div className="operation-grid">{operations.map(item => <button key={item.id} type="button" data-operation={item.id} className={`operation ${operation === item.id ? "active" : ""}`} aria-pressed={operation === item.id} onClick={() => setOperation(item.id)}><span>{item.icon}</span><strong>{item.title}</strong><small>{item.description}</small></button>)}</div>
           {(operation === "group" || operation === "monthly") && <div className="analysis-options"><label>{operation === "monthly" ? "Sana ustuni" : "Guruhlash ustuni"}<select id="group-column" value={groupColumn} onChange={e => setGroupColumn(e.target.value)}>{profile.columns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select></label><label>Hisoblash usuli<select id="aggregation" value={aggregation} onChange={e => setAggregation(e.target.value as typeof aggregation)}><option value="sum">Yig‘indi</option><option value="mean">O‘rtacha qiymat</option><option value="count">Qatorlar soni</option></select></label>{aggregation !== "count" && <label>Sonli ustun<select id="value-column" value={valueColumn} onChange={e => setValueColumn(e.target.value)}>{numericColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}</select></label>}{operation === "monthly" && <label>Sana formati<select id="date-format" value={dateFormat} onChange={e => setDateFormat(e.target.value)}><option value="ISO8601">YYYY-MM-DD</option><option value="%d/%m/%Y">DD/MM/YYYY</option><option value="%m/%d/%Y">MM/DD/YYYY</option><option value="%d.%m.%Y">DD.MM.YYYY</option></select></label>}</div>}

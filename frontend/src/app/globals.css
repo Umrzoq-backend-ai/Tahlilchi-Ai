@@ -13,3 +13,7 @@
 @media(max-width:760px){.sidebar-demo{margin:8px 0 0;padding:9px 11px}}
 
 .export-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px 16px;flex-wrap:wrap}.export-actions small{flex-basis:100%;text-align:right;color:var(--muted);font-size:10px}@media(max-width:760px){.result-card>.card-heading{flex-wrap:wrap}.export-actions{justify-content:flex-start}.export-actions small{text-align:left}}
+
+.batch-hint{margin:0 25px 10px;color:var(--muted);font-size:11px;line-height:1.5}.batch-results{border-top:1px solid var(--line);padding:20px 25px}.batch-results h3{margin-bottom:12px}.batch-item{border:1px solid var(--line);border-radius:9px;padding:14px;margin-top:10px}.batch-item-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.batch-item-head strong{font-size:12px;line-height:1.5;overflow-wrap:anywhere}.batch-item-head span{color:var(--muted);font-size:11px;white-space:nowrap}.batch-item>p{margin:10px 0;line-height:1.6;font-size:12px}.batch-item .table-scroll{margin:10px 0;max-height:260px}.batch-item th,.batch-item td{padding:9px 12px}
+
+.batch-title{display:flex;justify-content:space-between;align-items:center;gap:12px}.batch-title h3{margin:0}

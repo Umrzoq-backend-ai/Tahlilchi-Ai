@@ -98,6 +98,46 @@ with sync_playwright() as playwright:
         with page.expect_download() as download:
             page.locator("#download-result").click()
         assert download.value.suggested_filename.endswith(".json")
+        if os.getenv("ANALYST_TEST_BATCH_AI") == "1":
+            expect(page.locator("#ask-button")).to_be_enabled()
+            page.locator("#question-input").fill(
+                "1. Jadvalda nechta bo‘sh katak va nechta aynan bir xil takrorlangan qator bor?\n"
+                "2. Har oy uchun amount yig‘indisini hisobla.\n"
+                "3. amount yig‘indisi bo‘yicha eng yuqori 2 category guruhini ko‘rsat."
+            )
+            page.locator("#ask-button").click()
+            expect(page.locator(".batch-item")).to_have_count(3)
+            deadline = time.monotonic() + 190
+            while time.monotonic() < deadline:
+                statuses = [
+                    item.get_attribute("data-status")
+                    for item in page.locator(".batch-item").all()
+                ]
+                if all(
+                    status
+                    in {
+                        "succeeded",
+                        "failed",
+                        "needs_input",
+                        "unsupported",
+                        "cancelled",
+                        "stopped",
+                    }
+                    for status in statuses
+                ):
+                    break
+                page.wait_for_timeout(500)
+            assert statuses == ["succeeded"] * 3, statuses
+            expect(page.locator(".batch-item").nth(0)).to_contain_text(
+                "takroriy qatorlar"
+            )
+            expect(page.locator(".batch-item").nth(1)).to_contain_text("2026-03")
+            expect(page.locator(".batch-item").nth(2)).to_contain_text("Elektronika")
+            expected_history += 3
+            expect(page.locator(".history-item")).to_have_count(expected_history)
+            print(
+                "Live numbered-question batch passed: three independent verified agent results."
+            )
         if os.getenv("ANALYST_TEST_LIVE_AI") == "1":
             expect(page.locator("#ask-button")).to_be_enabled()
             page.locator("#question-input").fill(
@@ -127,7 +167,7 @@ with sync_playwright() as playwright:
             assert ["2026-03", 3400000] in run["analysis"]["result"]["table"]["rows"]
             expect(page.locator("#agent-stage")).to_have_text("Hisoblash tekshirildi.")
             expect(page.locator("#chart svg rect")).to_have_count(6)
-            expected_history = 2
+            expected_history += 1
             expect(page.locator(".history-item")).to_have_count(expected_history)
             print(
                 "Live Gemini passed: plan, generated Python, namespace execution, independent validation."
@@ -138,7 +178,13 @@ with sync_playwright() as playwright:
         expect(page.locator(".history-item")).to_have_count(expected_history)
         expect(page.locator(".history-item").first).to_be_enabled()
         page.locator(".history-item").first.click()
-        expect(page.locator("#result-summary")).to_contain_text("2026-03")
+        latest_expected = (
+            "Elektronika"
+            if os.getenv("ANALYST_TEST_BATCH_AI") == "1"
+            and os.getenv("ANALYST_TEST_LIVE_AI") != "1"
+            else "2026-03"
+        )
+        expect(page.locator("#result-summary")).to_contain_text(latest_expected)
         page.set_viewport_size({"width": 390, "height": 844})
         expect(page.locator("#add-file")).to_be_visible()
         assert page.evaluate(

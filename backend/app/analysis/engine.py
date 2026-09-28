@@ -188,6 +188,19 @@ def analyze(frame: pd.DataFrame, request: dict) -> dict:
         warnings.append("Bo‘sh qiymatlar statistikadan chiqarildi. Dublikatlar o‘chirilmagan.")
         if not stats:
             warnings.append("Sonli ustun topilmadi; raqam formatini tekshiring.")
+    elif operation == "quality":
+        missing_cells = int(frame.isna().sum().sum())
+        duplicate_rows = int(frame.duplicated().sum())
+        result = pd.DataFrame(
+            {
+                "ko‘rsatkich": ["bo‘sh kataklar", "takroriy qatorlar"],
+                "soni": [missing_cells, duplicate_rows],
+            }
+        )
+        summary = (
+            f"{missing_cells:,} ta bo‘sh katak va {duplicate_rows:,} ta aynan takroriy qator "
+            "topildi. Ma’lumotlar o‘zgartirilmadi."
+        )
     elif operation == "metric":
         aggregation = request["aggregation"]
         if aggregation == "count":
