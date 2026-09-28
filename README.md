@@ -62,7 +62,7 @@ Tashqi modelga savol, ustun nomlari/turlari, reja va qayta tuzatish uchun yarati
 
 1. Bo‘sh ish maydonining chap tomonidagi **Namunada sinab ko‘rish**ni (yoki yuklash qismidagi **Savdo namunasini ochish**ni) bosing.
 2. **Gemini bilan savol bering** maydoniga quyidagilardan birini yozing:
-   - `order_date ustuni YYYY-MM-DD formatida. Har bir oy uchun amount yig‘indisini hisobla va barcha oylarni chiqar.`
+   - `Har bir oy uchun amount yig‘indisini hisobla va barcha oylarni chiqar.`
    - `city ustuni Toshkent bo‘lgan qatorlardagi amount yig‘indisini hisobla.`
    - `amount yig‘indisi bo‘yicha eng yuqori 5 category guruhini ko‘rsat.`
 3. Jarayon holati va natijani kuting. Agent aniqlik so‘rasa, shu maydonda javob yozing.
@@ -81,7 +81,7 @@ Namuna uchun eng yuqori oy — **2026-03, 3 400 000**. Toshkent bo‘yicha yig�
 7. Mos bo‘lsa foydalanuvchiga reference asosidagi izoh, jadval va grafik beriladi. LLM o‘ylab topgan biznes xulosasi yakuniy natijaga qo‘shilmaydi.
 8. Syntax/runtime yoki natija mos kelmasligida ko‘pi bilan ikki tuzatish; policy, resurs, kvota va bekor qilish holatida to‘xtaydi.
 
-Chegaralar: ikki parallel agent ishi; har run 180 soniya; jami ko‘pi bilan 5 HTTP model chaqiruvi; har chaqiruv 4096 output-token limiti. Vaqtinchalik 5xx/connection xatosiga bitta retry shu umumiy budjet ichida ishlaydi. Sana yoki tip xatolarida tizim jim noto‘g‘ri parsing qilmaydi.
+Chegaralar: ikki parallel agent ishi; har run 180 soniya; jami ko‘pi bilan 5 HTTP model chaqiruvi; har chaqiruv 4096 output-token limiti. Vaqtinchalik 5xx/connection xatosiga bitta retry shu umumiy budjet ichida ishlaydi. Sana yoki tip xatolarida tizim jim noto‘g‘ri parsing qilmaydi. CSVdagi sana ustunining barcha bo‘sh bo‘lmagan qiymatlari aniq `YYYY-MM-DD` bo‘lsa, profil formatni tasdiqlab agentga uzatadi va interfeysda ko‘rsatadi; boshqa formatlar foydalanuvchidan aniqlashtiriladi. Avval yuklangan fayllar profili birinchi ochilganda yangilanadi. Oylik natija tanlangan sana formatini ogohlantirishda ko‘rsatadi.
 
 ## Qo‘llanadigan tahlillar
 

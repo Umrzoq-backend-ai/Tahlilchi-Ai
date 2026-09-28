@@ -79,6 +79,8 @@ with sync_playwright() as playwright:
         dataset_id = uploaded.value.json()["id"]
         expect(page.locator("#dataset-name")).to_have_text("sales.csv")
         expect(page.locator("#metric-rows")).to_have_text("19")
+        page.locator(".schema-details summary").click()
+        expect(page.locator(".schema-details")).to_contain_text("YYYY-MM-DD")
         expect(page.locator('[data-operation="monthly"]')).to_be_enabled()
         page.locator('[data-operation="monthly"]').click()
         page.locator("#group-column").select_option("order_date")
@@ -99,7 +101,7 @@ with sync_playwright() as playwright:
         if os.getenv("ANALYST_TEST_LIVE_AI") == "1":
             expect(page.locator("#ask-button")).to_be_enabled()
             page.locator("#question-input").fill(
-                "order_date ustuni YYYY-MM-DD formatida. Har bir oy uchun amount yig‘indisini hisobla va barcha oylarni chiqar."
+                "Har bir oy uchun amount yig‘indisini hisobla va barcha oylarni chiqar."
             )
             with page.expect_response(
                 lambda response: (

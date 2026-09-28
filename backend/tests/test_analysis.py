@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 import pytest
 
-from app.analysis.engine import analyze
+from app.analysis.engine import agent_schema, analyze, date_format_hint, profile
 from app.analysis.reader import read_frame
 from app.errors import AppError
 from app.schemas import AnalysisRequest
@@ -216,3 +216,34 @@ def test_demo_company_metric_reference():
         filters=[{"column": "city", "operator": "eq", "value": "Toshkent"}],
     )
     assert result["table"]["rows"] == [["sum", 3280000]]
+
+
+@pytest.mark.parametrize(
+    "values,expected",
+    [
+        (["2026-01-01", "2026-02-28", None], "ISO8601"),
+        (["2026-01-01", "01/02/2026"], None),
+        (["2026-02-30", "2026-01-01"], None),
+        (["2026-01-01T12:00:00", "2026-02-01"], None),
+    ],
+)
+def test_date_hint_requires_every_value_to_match(values, expected):
+    assert date_format_hint(pd.Series(values, dtype="object")) == expected
+
+
+def test_agent_schema_only_sends_validated_format_metadata():
+    frame = pd.DataFrame(
+        {"order_date": ["2026-01-01", "2026-02-01"], "customer": ["Aziza", "Bobur"]}
+    )
+    dataset_profile = profile(frame, {"warnings": []})
+    columns = agent_schema(dataset_profile)
+    assert columns[0]["date_format_hint"] == "ISO8601"
+    assert "date_format_hint" not in columns[1]
+    assert "Aziza" not in str(columns)
+    assert "2026-01-01" not in str(columns)
+
+
+def test_monthly_result_discloses_chosen_date_format():
+    frame = pd.DataFrame({"date": ["2026-01-01"], "value": [10]})
+    result = run(frame, operation="monthly", group_column="date", value_column="value")
+    assert "Sana YYYY-MM-DD formatida talqin qilindi." in result["warnings"]

@@ -6,6 +6,7 @@ from threading import RLock
 from typing import BinaryIO
 from uuid import uuid4
 
+from app.analysis.engine import PROFILE_VERSION
 from app.analysis.runner import AnalysisRunner
 from app.config import Settings
 from app.errors import AppError
@@ -26,11 +27,18 @@ class DatasetService:
         # Single local process: deletion cannot race analysis/history persistence.
         self.lock = RLock()
 
-    def get(self, dataset_id: str) -> dict:
-        dataset = self.store.get_dataset(dataset_id)
-        if dataset is None:
-            raise AppError("NOT_FOUND", "Dataset topilmadi yoki o‘chirilgan.", 404)
-        return dataset
+    def get(self, dataset_id: str, refresh_profile: bool = True) -> dict:
+        with self.lock:
+            dataset = self.store.get_dataset(dataset_id)
+            if dataset is None:
+                raise AppError("NOT_FOUND", "Dataset topilmadi yoki o‘chirilgan.", 404)
+            if refresh_profile and dataset["profile"].get("profile_version", 0) < PROFILE_VERSION:
+                # Existing uploads need the newer metadata too; preserve their IDs and history.
+                dataset["profile"] = self.runner.run(
+                    self.path_for(dataset), dataset["parsing_options"]
+                )
+                self.store.update_dataset_profile(dataset_id, dataset["profile"])
+            return dataset
 
     def path_for(self, dataset: dict) -> Path:
         return self.files / f"{dataset['id']}{dataset['extension']}"
@@ -79,13 +87,13 @@ class DatasetService:
 
     def reparse(self, dataset_id: str, options: dict) -> dict:
         with self.lock:
-            dataset = self.get(dataset_id)
+            dataset = self.get(dataset_id, refresh_profile=False)
             with self.path_for(dataset).open("rb") as stream:
                 return self.upload(stream, dataset["name"], options, dataset.get("owner_id"))
 
     def analyze(self, dataset_id: str, request: dict) -> dict:
         with self.lock:
-            dataset = self.get(dataset_id)
+            dataset = self.get(dataset_id, refresh_profile=False)
             result = self.runner.run(self.path_for(dataset), dataset["parsing_options"], request)
             document = {
                 "id": str(uuid4()),
@@ -108,6 +116,6 @@ class DatasetService:
 
     def delete(self, dataset_id: str) -> None:
         with self.lock:
-            dataset = self.get(dataset_id)
+            dataset = self.get(dataset_id, refresh_profile=False)
             self.path_for(dataset).unlink(missing_ok=True)
             self.store.delete_dataset(dataset_id)

@@ -10,6 +10,7 @@ from app.agent.prompts import CODEGEN, PLANNER
 from app.agent.provider import Budget, GeminiCompatibleProvider
 from app.agent.sandbox import Sandbox
 from app.agent.validator import validate_table
+from app.analysis.engine import agent_schema
 from app.errors import AppError
 from app.services import DatasetService, now
 
@@ -141,10 +142,7 @@ class AgentService:
             )
             # Prove isolation works BEFORE consuming provider tokens.
             self.sandbox.probe()
-            schema = [
-                {"name": c["name"], "kind": c["kind"], "dtype": c["dtype"]}
-                for c in dataset["profile"]["columns"]
-            ]
+            schema = agent_schema(dataset["profile"])
             context = {"question": document["question"], "columns": schema}
             plan = None
             for planning_attempt in range(2):

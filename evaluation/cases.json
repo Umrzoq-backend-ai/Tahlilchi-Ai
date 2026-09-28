@@ -2,6 +2,30 @@
   "version": 1,
   "cases": [
     {
+      "id": "validated_iso_date_without_user_format",
+      "question": "Har oy uchun amount yig‘indisini hisobla.",
+      "csv": "order_date,amount\n2026-01-03,125\n2026-01-08,75\n2026-02-01,155\n",
+      "request": {
+        "operation": "monthly",
+        "group_column": "order_date",
+        "value_column": "amount"
+      },
+      "expected_columns": [
+        "group",
+        "value"
+      ],
+      "expected_rows": [
+        [
+          "2026-01",
+          200
+        ],
+        [
+          "2026-02",
+          155
+        ]
+      ]
+    },
+    {
       "id": "monthly_revenue",
       "question": "order_date YYYY-MM-DD formatida. Har oy uchun amount yig‘indisini hisobla.",
       "csv": "order_date,amount\n2026-01-03,120\n2026-01-08,80\n2026-02-01,150\n",

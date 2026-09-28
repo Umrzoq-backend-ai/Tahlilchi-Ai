@@ -18,6 +18,47 @@ def kind(series: pd.Series) -> str:
     return "text"
 
 
+PROFILE_VERSION = 2
+ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def date_format_hint(series: pd.Series) -> str | None:
+    """Return only a format proven by every nonblank value, never a sample guess."""
+    if kind(series) != "text":
+        return None
+    values = series.dropna()
+    if (
+        values.empty
+        or not isinstance(values.iloc[0], str)
+        or not ISO_DATE.fullmatch(values.iloc[0])
+    ):
+        return None
+    if not values.map(
+        lambda value: isinstance(value, str) and bool(ISO_DATE.fullmatch(value))
+    ).all():
+        return None
+    if pd.to_datetime(values, format="%Y-%m-%d", errors="coerce").notna().all():
+        return "ISO8601"
+    return None
+
+
+def agent_schema(dataset_profile: dict) -> list[dict]:
+    """Expose column metadata to the model without any row or sample value."""
+    return [
+        {
+            "name": column["name"],
+            "kind": column["kind"],
+            "dtype": column["dtype"],
+            **(
+                {"date_format_hint": column["date_format_hint"]}
+                if column.get("date_format_hint")
+                else {}
+            ),
+        }
+        for column in dataset_profile["columns"]
+    ]
+
+
 def numeric_values(series: pd.Series) -> pd.Series:
     if kind(series) != "number":
         raise AppError("NOT_NUMERIC", "Hisoblash uchun sonli ustunni tanlang.")
@@ -39,6 +80,8 @@ def profile(frame: pd.DataFrame, metadata: dict) -> dict:
             "missing": int(series.isna().sum()),
             "unique": int(series.nunique()),
         }
+        if hint := date_format_hint(series):
+            column["date_format_hint"] = hint
         if column["kind"] == "number":
             valid = series.dropna()
             if not valid.map(math.isfinite).all():
@@ -58,6 +101,7 @@ def profile(frame: pd.DataFrame, metadata: dict) -> dict:
         columns.append(column)
     return {
         **metadata,
+        "profile_version": PROFILE_VERSION,
         "warnings": warnings,
         "row_count": len(frame),
         "column_count": len(frame.columns),
@@ -199,6 +243,13 @@ def analyze(frame: pd.DataFrame, request: dict) -> dict:
                     "Sana ustuni son bo‘lmasligi kerak; haqiqiy sana ustunini tanlang.",
                 )
             date_format = request["date_format"]
+            labels = {
+                "ISO8601": "YYYY-MM-DD",
+                "%d/%m/%Y": "DD/MM/YYYY",
+                "%m/%d/%Y": "MM/DD/YYYY",
+                "%d.%m.%Y": "DD.MM.YYYY",
+            }
+            warnings.append(f"Sana {labels[date_format]} formatida talqin qilindi.")
             if date_format == "ISO8601" and kind(keys) != "date":
                 if (
                     not keys.dropna()

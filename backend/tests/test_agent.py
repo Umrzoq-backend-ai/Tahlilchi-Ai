@@ -87,6 +87,9 @@ def test_real_sandbox_repair_and_idempotency(agent_client):
     assert duplicate["id"] == run["id"]
     assert len(fake.contexts) == 3
     assert set(fake.contexts[0]) == {"question", "columns"}
+    assert {
+        column["name"]: column.get("date_format_hint") for column in fake.contexts[0]["columns"]
+    }["order_date"] == "ISO8601"
     assert "Aziza" not in str(fake.contexts)
     assert "3400000" not in str(fake.contexts)
     events = client.get(f"/api/v1/runs/{run['id']}/events?after_seq=2").json()

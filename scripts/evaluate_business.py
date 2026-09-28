@@ -15,7 +15,7 @@ from pathlib import Path
 from app.agent.models import AgentPlan
 from app.agent.prompts import PLANNER
 from app.agent.provider import Budget, GeminiCompatibleProvider
-from app.analysis.engine import analyze, profile
+from app.analysis.engine import agent_schema, analyze, profile
 from app.analysis.reader import read_frame
 from app.config import PROJECT_ROOT, Settings
 from app.errors import AppError
@@ -53,14 +53,8 @@ def effective_plan(request: AnalysisRequest) -> dict:
 
 
 def live_plan(provider, settings: Settings, case: dict, frame, metadata) -> None:
-    columns = profile(frame, metadata)["columns"]
-    context = {
-        "question": case["question"],
-        "columns": [
-            {"name": column["name"], "kind": column["kind"], "dtype": column["dtype"]}
-            for column in columns
-        ],
-    }
+    columns = agent_schema(profile(frame, metadata))
+    context = {"question": case["question"], "columns": columns}
     budget = Budget(time.monotonic() + settings.llm_timeout * 2 + 5, 3)
     for attempt in range(2):
         try:

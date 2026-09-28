@@ -48,6 +48,36 @@ def test_upload_analyze_persist_and_delete(client, settings):
     assert client.app.state.service.store.list_analyses(dataset_id) == []
 
 
+def test_existing_dataset_profile_is_upgraded_without_reupload(client):
+    dataset = upload(client).json()
+    dataset_id = dataset["id"]
+    old_profile = dataset["profile"].copy()
+    old_profile.pop("profile_version")
+    for column in old_profile["columns"]:
+        column.pop("date_format_hint", None)
+    client.app.state.service.store.update_dataset_profile(dataset_id, old_profile)
+
+    response = client.get(f"/api/v1/datasets/{dataset_id}")
+    assert response.status_code == 200, response.text
+    upgraded = response.json()
+    assert upgraded["id"] == dataset_id
+    assert upgraded["profile"]["profile_version"] == 2
+    assert upgraded["profile"]["columns"][0]["date_format_hint"] == "ISO8601"
+    assert client.app.state.service.store.get_dataset(dataset_id)["profile"] == upgraded["profile"]
+    assert len(client.get("/api/v1/datasets").json()) == 1
+
+
+def test_old_dataset_can_be_deleted_even_if_its_raw_file_is_missing(client):
+    dataset = upload(client).json()
+    dataset_id = dataset["id"]
+    old_profile = dataset["profile"].copy()
+    old_profile.pop("profile_version")
+    client.app.state.service.store.update_dataset_profile(dataset_id, old_profile)
+    client.app.state.service.path_for(dataset).unlink()
+    assert client.delete(f"/api/v1/datasets/{dataset_id}").status_code == 204
+    assert client.app.state.service.store.get_dataset(dataset_id) is None
+
+
 def test_demo_reference_monthly(client):
     response = upload(client, (PROJECT_ROOT / "examples" / "sales.csv").read_bytes())
     assert response.status_code == 201, response.text

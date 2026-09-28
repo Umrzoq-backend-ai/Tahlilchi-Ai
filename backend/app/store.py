@@ -67,6 +67,18 @@ class Store:
                 ),
             )
 
+    def update_dataset_profile(self, dataset_id: str, profile: dict) -> None:
+        with self.connect() as db:
+            row = db.execute("SELECT document FROM datasets WHERE id=?", (dataset_id,)).fetchone()
+            if row is None:
+                return
+            document = json.loads(row[0])
+            document["profile"] = profile
+            db.execute(
+                "UPDATE datasets SET document=? WHERE id=?",
+                (json.dumps(document, allow_nan=False), dataset_id),
+            )
+
     def get_dataset(self, dataset_id: str) -> dict | None:
         with self.connect() as db:
             row = db.execute("SELECT document FROM datasets WHERE id=?", (dataset_id,)).fetchone()

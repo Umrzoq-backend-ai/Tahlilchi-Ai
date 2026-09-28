@@ -1,6 +1,6 @@
 export type Cell = string | number | boolean | null;
 export type Table = { columns: string[]; rows: Cell[][]; total?: number; truncated?: boolean };
-export type Column = { name: string; kind: "number" | "date" | "boolean" | "text"; dtype: string; missing: number; unique: number };
+export type Column = { name: string; kind: "number" | "date" | "boolean" | "text"; dtype: string; missing: number; unique: number; date_format_hint?: "ISO8601" };
 export type Profile = {
   row_count: number; column_count: number; missing_cells: number; duplicate_rows: number;
   warnings: string[]; columns: Column[]; preview: Table;
