@@ -63,10 +63,12 @@ with sync_playwright() as playwright:
         expect(page.locator("#demo-button")).to_be_enabled()
         expect(page.locator("#demo-sidebar-button")).to_be_visible()
         page.set_viewport_size({"width": 390, "height": 844})
+        page.locator("#menu-toggle").click()
         expect(page.locator("#demo-sidebar-button")).to_be_visible()
         assert page.evaluate(
             "document.documentElement.scrollWidth <= window.innerWidth"
         )
+        page.locator("#menu-toggle").click()
         page.set_viewport_size({"width": 1440, "height": 1100})
         page.screenshot(path=str(screenshots / "desktop-upload.png"), full_page=True)
         with page.expect_response(
@@ -81,6 +83,8 @@ with sync_playwright() as playwright:
         expect(page.locator("#metric-rows")).to_have_text("19")
         page.locator(".schema-details summary").click()
         expect(page.locator(".schema-details")).to_contain_text("YYYY-MM-DD")
+        page.screenshot(path=str(screenshots / "desktop-dataset.png"), full_page=True)
+        page.locator('.primary-nav [data-view-link="ai"]').click()
         expect(page.locator('[data-operation="monthly"]')).to_be_enabled()
         page.locator('[data-operation="monthly"]').click()
         page.locator("#group-column").select_option("order_date")
@@ -99,6 +103,7 @@ with sync_playwright() as playwright:
             page.locator("#download-result").click()
         assert download.value.suggested_filename.endswith(".json")
         if os.getenv("ANALYST_TEST_BATCH_AI") == "1":
+            page.locator('.primary-nav [data-view-link="ai"]').click()
             expect(page.locator("#ask-button")).to_be_enabled()
             page.locator("#question-input").fill(
                 "1. Jadvalda nechta bo‘sh katak va nechta aynan bir xil takrorlangan qator bor?\n"
@@ -139,6 +144,7 @@ with sync_playwright() as playwright:
                 "Live numbered-question batch passed: three independent verified agent results."
             )
         if os.getenv("ANALYST_TEST_LIVE_AI") == "1":
+            page.locator('.primary-nav [data-view-link="ai"]').click()
             expect(page.locator("#ask-button")).to_be_enabled()
             page.locator("#question-input").fill(
                 "Har bir oy uchun amount yig‘indisini hisobla va barcha oylarni chiqar."
@@ -172,9 +178,11 @@ with sync_playwright() as playwright:
             print(
                 "Live Gemini passed: plan, generated Python, namespace execution, independent validation."
             )
+        page.locator('.primary-nav [data-view-link="results"]').click()
         page.screenshot(path=str(screenshots / "desktop-result.png"), full_page=True)
         page.reload()
         page.locator(".dataset-item", has_text="sales.csv").first.click()
+        page.locator('.primary-nav [data-view-link="results"]').click()
         expect(page.locator(".history-item")).to_have_count(expected_history)
         expect(page.locator(".history-item").first).to_be_enabled()
         page.locator(".history-item").first.click()
@@ -186,19 +194,23 @@ with sync_playwright() as playwright:
         )
         expect(page.locator("#result-summary")).to_contain_text(latest_expected)
         page.set_viewport_size({"width": 390, "height": 844})
-        expect(page.locator("#add-file")).to_be_visible()
+        expect(page.locator(".mobile-nav")).to_be_visible()
         assert page.evaluate(
             "document.documentElement.scrollWidth <= window.innerWidth"
         )
         page.screenshot(path=str(screenshots / "mobile-result.png"), full_page=True)
+        page.locator("#menu-toggle").click()
+        expect(page.locator("#add-file")).to_be_visible()
         page.locator("#add-file").click()
         expect(page.locator("#upload-panel")).to_be_visible()
+        page.locator('.mobile-nav [data-view-link="data"]').click()
         page.on("dialog", lambda dialog: dialog.accept())
         page.locator("#delete-dataset").click()
         expect(page.locator("#dataset-panel")).to_be_hidden()
         assert (
             page.request.get(f"{base_url}/api/v1/datasets/{dataset_id}").status == 404
         )
+        page.locator("#menu-toggle").click()
         page.locator("#logout-button").click()
         expect(page.locator("#auth-form")).to_be_visible()
         expect(page.locator(".sidebar")).to_be_hidden()

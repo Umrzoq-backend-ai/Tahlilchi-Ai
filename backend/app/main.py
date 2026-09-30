@@ -509,6 +509,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         return FileResponse(html_path)
 
+    @app.get("/brand.svg", include_in_schema=False)
+    def brand_icon():
+        return FileResponse(
+            PROJECT_ROOT / "frontend" / "public" / "brand.svg", media_type="image/svg+xml"
+        )
+
+    app.mount(
+        "/fonts",
+        StaticFiles(directory=PROJECT_ROOT / "frontend" / "public" / "fonts", check_dir=False),
+        name="design-fonts",
+    )
+
     app.mount(
         "/_next",
         StaticFiles(directory=frontend_output / "_next", check_dir=False),

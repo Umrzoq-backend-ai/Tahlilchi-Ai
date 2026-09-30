@@ -1,3 +1,4 @@
+import { Icon } from "./Design";
 import type { Analysis, Cell, Chart, Table } from "@/lib/types";
 
 const number = new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 2 });
@@ -25,7 +26,7 @@ export function BarChart({ chart }: { chart: Chart }) {
   const min = Math.min(0, ...finite), max = Math.max(0, ...finite), range = max - min || 1;
   const y = (value: number) => top + (max - value) / range * plotHeight;
   const zero = y(0), slot = (width - left - right) / Math.max(1, chart.labels.length);
-  return <div id="chart" className="chart-wrap"><h3>{chart.title}</h3><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${chart.title}. Aniq qiymatlar jadvalda.`}>
+  return <div id="chart" className="chart-wrap"><h3>{chart.title}</h3><div className="chart-scroll" tabIndex={0} aria-label="Diagrammani yon tomonga surish"><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${chart.title}. Aniq qiymatlar jadvalda.`}>
     {Array.from({ length: 5 }, (_, i) => {
       const value = min + range * i / 4, pos = y(value);
       return <g key={i}><line x1={left} x2={width - right} y1={pos} y2={pos} className="grid-line"/><text x={left - 12} y={pos + 4} textAnchor="end" className="chart-axis">{shortNumber.format(value)}</text></g>;
@@ -37,7 +38,7 @@ export function BarChart({ chart }: { chart: Chart }) {
         <text x={labelX} y={height - bottom + 22} textAnchor="end" className="chart-axis" transform={`rotate(-30 ${labelX} ${height - bottom + 22})`}>{label.length > 16 ? `${label.slice(0, 15)}…` : label}</text>
       </g>;
     })}
-  </svg>{chart.shown < chart.total && <p className="muted">{chart.total} guruhdan dastlabki {chart.shown} tasi ko‘rsatilgan.</p>}</div>;
+  </svg></div>{chart.shown < chart.total && <p className="muted">{chart.total} guruhdan dastlabki {chart.shown} tasi ko‘rsatilgan.</p>}</div>;
 }
 
 export default function Results({ analysis }: { analysis: Analysis }) {
@@ -48,11 +49,11 @@ export default function Results({ analysis }: { analysis: Analysis }) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   return <section className="card result-card" id="result-panel" aria-live="polite">
-    <div className="card-heading"><div><span className="step-icon success">✓</span><div><p className="eyebrow">TAYYOR NATIJA</p><h2>Tahlil natijasi</h2></div></div><div className="export-actions"><a id="download-csv" className="quiet-button" href={`/api/v1/datasets/${analysis.dataset_id}/analyses/${analysis.id}/export.csv`} download>CSV yuklab olish ↓</a><button id="download-result" className="quiet-button" onClick={downloadJson}>JSON yuklab olish ↓</button>{analysis.result.table.truncated && <small>CSVda ko‘rsatilgan {analysis.result.table.rows.length} qator bor</small>}</div></div>
-    <p id="result-summary" className="result-summary">{analysis.result.summary}</p>
+    <div className="card-heading"><div><span className="step-icon success"><Icon name="chart"/></span><div><p className="eyebrow">TAYYOR NATIJA</p><h2>Tahlil natijasi</h2></div></div><div className="export-actions"><a id="download-csv" className="quiet-button" href={`/api/v1/datasets/${analysis.dataset_id}/analyses/${analysis.id}/export.csv`} download>CSV yuklab olish ↓</a><button id="download-result" className="quiet-button" onClick={downloadJson}>JSON yuklab olish ↓</button>{analysis.result.table.truncated && <small>CSVda ko‘rsatilgan {analysis.result.table.rows.length} qator bor</small>}</div></div>
+    <div className="result-summary-panel"><span className="step-icon"><Icon name="check"/></span><div><h3>Hisoblash xulosasi</h3><p id="result-summary" className="result-summary">{analysis.result.summary}</p></div></div>
     {analysis.result.warnings.length > 0 && <div className="warnings">{analysis.result.warnings.map((warning, index) => <p key={index}>{warning}</p>)}</div>}
     {analysis.result.chart && <BarChart chart={analysis.result.chart}/>}
-    <DataTable table={analysis.result.table} label="Tahlil natijasi"/>
+    <div className="result-table"><h3>Hisob-kitoblar jadvali</h3><DataTable table={analysis.result.table} label="Tahlil natijasi"/></div>
     <details className="provenance"><summary>Hisoblash manbasi va parametrlari</summary><pre>{JSON.stringify(analysis.provenance, null, 2)}</pre></details>
   </section>;
 }
