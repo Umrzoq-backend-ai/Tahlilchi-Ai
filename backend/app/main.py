@@ -106,6 +106,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "/api/v1/demo.csv",
             "/api/v1/auth/me",
             "/api/v1/auth/login",
+            "/api/v1/auth/register",
             "/api/v1/auth/setup",
             "/api/v1/auth/google/status",
             "/api/v1/auth/google/start",
@@ -223,6 +224,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         user = request.app.state.auth.login(
             payload, request.client.host if request.client else "unknown"
         )
+        return start_session(request, response, user)
+
+    @app.post("/api/v1/auth/register", status_code=201)
+    def register(payload: Credentials, request: Request, response: Response):
+        if request.app.state.auth.needs_setup():
+            raise AppError(
+                "SETUP_REQUIRED",
+                "Avval birinchi administrator hisobini yarating.",
+                409,
+            )
+        user = request.app.state.auth.create_user(payload)
         return start_session(request, response, user)
 
     def google_redirect_uri(request: Request) -> str:

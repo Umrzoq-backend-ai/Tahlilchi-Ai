@@ -30,7 +30,7 @@ bash scripts/run.sh
 
 Brauzer: <http://127.0.0.1:8000> · API: <http://127.0.0.1:8000/docs>
 
-Birinchi ochishda administrator loginini va kamida 12 belgili parolni yarating. Google kirishini yoqish uchun [Google OAuth sozlash yo‘riqnomasi](docs/GOOGLE_LOGIN.md)ga qarang; Gemini API kaliti login credentiali emas. Mavjud lokal fayllar shu birinchi hisobga biriktiriladi. Keyingi xodim hisoblarini yon paneldagi **Xodim hisobi yaratish** bo‘limidan oching. Har bir hisob faqat o‘z fayl va natijalarini ko‘radi.
+Birinchi ochishda administrator loginini va kamida 12 belgili parolni yarating. Shundan keyin kirish ekranidagi **Ro‘yxatdan o‘tish** tabi yangi oddiy foydalanuvchi hisobini yaratadi va sessiyani ochadi. Google kirishini yoqish uchun [Google OAuth sozlash yo‘riqnomasi](docs/GOOGLE_LOGIN.md)ga qarang; Gemini API kaliti login credentiali emas. Mavjud lokal fayllar shu birinchi hisobga biriktiriladi. Keyingi xodim hisoblarini yon paneldagi **Xodim hisobi yaratish** bo‘limidan oching. Har bir hisob faqat o‘z fayl va natijalarini ko‘radi.
 
 `.env` avtomatik o‘qiladi; eksport qilingan environment o‘zgaruvchilari undan ustun. `.env`dagi `GEMINI_API_KEY=` qiymatini lokal kiriting. Kalit Gitga, frontendga va loglarga yuborilmaydi. Sozlama o‘zgarsa serverni qayta ishga tushiring. Frontend kodini o‘zgartirsangiz `npm run build --prefix frontend` va server restartini bajaring; CSP yangi Next.js skript hashlarini restartda hisoblaydi.
 
@@ -105,11 +105,11 @@ Parol terminalda yashirin so‘raladi. Yangilash foydalanuvchining barcha eski s
 
 Google kirishi uchun `GET /api/v1/auth/google/status`, `GET /auth/google/start`, `GET /auth/google/callback` va login sessiyasi bilan `POST /auth/google/link` bor. OAuth javob kodi faqat backendda almashiladi; Google Secret brauzerga yuborilmaydi.
 
-Cookie sessiyasi kerak. `GET /api/v1/auth/me` joriy hisob va `csrf_token`ni qaytaradi; POST/DELETE so‘rovlarida uni `X-CSRF-Token` headeriga qo‘ying. `health`, `demo.csv`, `auth/me`, `auth/login`, lokal birinchi `auth/setup` login talab qilmaydi. Login/setup JSON `{username, password}` qabul qiladi.
+Cookie sessiyasi kerak. `GET /api/v1/auth/me` joriy hisob va `csrf_token`ni qaytaradi; POST/DELETE so‘rovlarida uni `X-CSRF-Token` headeriga qo‘ying. `health`, `demo.csv`, `auth/me`, `auth/login`, `auth/register`, lokal birinchi `auth/setup` login talab qilmaydi. Login/setup JSON `{username, password}` qabul qiladi.
 
 | Endpoint | Amal |
 | --- | --- |
-| `POST /api/v1/auth/setup`, `/auth/login` | Birinchi hisob / kirish |
+| `POST /api/v1/auth/setup`, `/auth/login`, `/auth/register` | Birinchi admin / kirish / yangi foydalanuvchi |
 | `POST /api/v1/auth/logout` | Joriy sessiyani yopish |
 | `POST /api/v1/auth/users` | Administrator orqali xodim hisobini yaratish |
 | `GET /api/v1/health` | Versiya va umumiy holat |

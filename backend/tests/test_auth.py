@@ -15,6 +15,45 @@ from app.main import create_app
 from app.services import DatasetService
 from app.store import Store
 
+
+def test_public_registration_creates_user_session(client):
+    authenticate(client)
+    assert client.post("/api/v1/auth/logout").status_code == 204
+
+    response = client.post(
+        "/api/v1/auth/register",
+        json={"username": "new.member", "password": "member-password-2026"},
+    )
+    assert response.status_code == 201, response.text
+    session = response.json()
+    assert session["authenticated"] is True
+    assert session["user"]["username"] == "new.member"
+    assert session["user"]["role"] == "user"
+    assert client.get("/api/v1/auth/me").json()["authenticated"] is True
+
+
+def test_registration_requires_admin_setup(settings):
+    with TestClient(create_app(settings)) as fresh:
+        response = fresh.post(
+            "/api/v1/auth/register",
+            json={"username": "new.member", "password": "member-password-2026"},
+        )
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "SETUP_REQUIRED"
+
+
+def test_registration_rejects_duplicate_username(client):
+    authenticate(client)
+    assert client.post("/api/v1/auth/logout").status_code == 204
+    payload = {"username": "member", "password": "member-password-2026"}
+    assert client.post("/api/v1/auth/register", json=payload).status_code == 201
+    client.headers["X-CSRF-Token"] = client.get("/api/v1/auth/me").json()["csrf_token"]
+    assert client.post("/api/v1/auth/logout").status_code == 204
+    response = client.post("/api/v1/auth/register", json=payload)
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "USER_EXISTS"
+
+
 ACCOUNT = {"username": "employee", "password": "employee-password-123"}
 
 

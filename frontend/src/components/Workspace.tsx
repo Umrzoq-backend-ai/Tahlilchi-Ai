@@ -26,6 +26,7 @@ const operations: { id: AnalysisRequest["operation"]; icon: string; title: strin
 ];
 
 type AuthMode = "checking" | "setup" | "login" | "ready";
+type AuthTab = "login" | "register";
 
 export default function Workspace() {
   const [view, setView] = useState<View>("home");
@@ -33,10 +34,12 @@ export default function Workspace() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const [authMode, setAuthMode] = useState<AuthMode>("checking");
+  const [authTab, setAuthTab] = useState<AuthTab>("login");
   const [user, setUser] = useState<User | null>(null);
   const [googleStatus, setGoogleStatus] = useState<GoogleStatus | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [userMessage, setUserMessage] = useState("");
@@ -181,9 +184,13 @@ export default function Workspace() {
   async function submitAuth(event: FormEvent) {
     event.preventDefault();
     await perform(async () => {
-      const endpoint = authMode === "setup" ? "setup" : "login";
+      if (authTab === "register" && password !== confirmPassword) {
+        throw new Error("Parollar bir xil emas.");
+      }
+      const endpoint = authMode === "setup" ? "setup" : authTab;
       const session = await api<Session>(`/auth/${endpoint}`, jsonBody({ username, password }));
       setPassword("");
+      setConfirmPassword("");
       if (!session.authenticated) throw new Error("Kirish yakunlanmadi.");
       setCsrfToken(session.csrf_token);
       // Reload replaces all state and obtains current datasets through the normal entry path.
@@ -310,27 +317,38 @@ export default function Workspace() {
   }
 
   function navigate(next: View) {
+    if (["data", "ai", "results"].includes(next) && !dataset) {
+      const first = datasets[0];
+      if (!first) {
+        setView("home");
+        setError("Avval CSV yoki Excel fayl yuklang.");
+        return;
+      }
+      void perform(async () => {
+        await openDataset(first.id);
+        setView(next);
+      });
+      return;
+    }
     setView(next); setMenuOpen(false);
   }
 
-  if (authMode !== "ready") return <main className="auth-shell"><section id="auth-panel" className="auth-card">
-    <div className="auth-brand"><BrandMark/><h1>Tahlilchi Studio</h1><p>Biznes ma’lumotlarini oson va aniq tahlil qilish platformasi</p></div>
-    <div className="auth-local"><Icon name="shield"/><span>Hisoblash o‘z serveringizda</span></div>
-    <h2>{authMode === "setup" ? "Ish maydonini yarating" : authMode === "checking" ? "Ish maydoni ochilmoqda…" : "Tizimga kirish"}</h2>
-    <p className="auth-copy">{authMode === "setup" ? "Birinchi administrator hisobingizni yarating. Mavjud lokal fayllar shu hisobga biriktiriladi." : "Ma’lumotlaringiz bilan ishlashni davom ettiring."}</p>
+  if (authMode !== "ready") return <main className="auth-shell"><div className="auth-layout"><aside className="auth-product-panel"><div className="auth-product-brand"><BrandMark/><span><strong>Tahlilchi Studio</strong><small>Biznes ma’lumotlarini oson va aniq tahlil qilish platformasi</small></span></div><div className="auth-product-copy"><h1>Ma’lumotlaringiz — sizning <em>kuchingiz!</em></h1><p>Jadvallaringizdan tez va tushunarli xulosalar oling. Savolingizni o‘zbek tilida yozing, hisoblangan natijani jadval va grafikda ko‘ring.</p></div><div className="auth-benefits"><div><Icon name="chart"/><span><strong>Aniq tahlil</strong><small>Faylingiz asosida tekshirilgan hisob-kitoblar</small></span></div><div><Icon name="spark"/><span><strong>Tezkor ishlash</strong><small>Bir nechta savolni navbat bilan hisoblash</small></span></div><div><Icon name="shield"/><span><strong>Mahalliy hisoblash</strong><small>Fayl qatorlari Gemini xizmatiga yuborilmaydi</small></span></div></div><div className="auth-preview" aria-hidden="true"><span/><span/><span/><span/><span/><span/></div></aside><section id="auth-panel" className="auth-card">
+    <div className="auth-brand"><BrandMark/><span><h1>Tahlilchi Studio</h1><p>Ma’lumotdan qarorgacha</p></span></div>
+    {authMode === "login" && <div className="auth-tabs" role="tablist" aria-label="Hisob amallari"><button type="button" role="tab" aria-selected={authTab === "login"} onClick={() => { setAuthTab("login"); setError(""); setPassword(""); setConfirmPassword(""); }}>Kirish</button><button type="button" role="tab" aria-selected={authTab === "register"} onClick={() => { setAuthTab("register"); setError(""); setPassword(""); setConfirmPassword(""); }}>Ro‘yxatdan o‘tish</button></div>}
+    <h2>{authMode === "setup" ? "Ish maydonini yarating" : authMode === "checking" ? "Ish maydoni ochilmoqda…" : authTab === "register" ? "Yangi hisob yarating" : "Xush kelibsiz!"}</h2>
+    <p className="auth-copy">{authMode === "setup" ? "Birinchi administrator hisobingizni yarating. Mavjud lokal fayllar shu hisobga biriktiriladi." : authTab === "register" ? "Platformada ishlash uchun login va xavfsiz parol tanlang." : "Hisobingizga kiring va tahlilni davom ettiring."}</p>
     {error && <p className="notice error" role="alert">{error}</p>}
-    {authMode === "login" && <div className="google-login-area">
-      <button id="google-login" type="button" className="google-button" disabled={busy || !googleStatus?.configured} onClick={() => void startGoogle(false)}><GoogleMark/> Google orqali kirish</button>
-      {!googleStatus?.configured && <p className="google-hint">Google kirishi hozir sozlanmagan. Login va parol orqali kiring.</p>}
-      <div className="auth-divider"><span>yoki login orqali</span></div>
-    </div>}
     {authMode !== "checking" && <form id="auth-form" onSubmit={submitAuth} className="form-stack">
       <label htmlFor="auth-username">Login</label><input id="auth-username" value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" pattern="[a-zA-Z0-9_.\-]+" minLength={3} maxLength={64} required placeholder="masalan: aziza"/>
-      <label htmlFor="auth-password">Parol</label><div className="password-field"><input id="auth-password" type={passwordVisible ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} autoComplete={authMode === "setup" ? "new-password" : "current-password"} minLength={12} maxLength={128} required placeholder={authMode === "setup" ? "Kamida 12 belgi" : "Parolingizni kiriting"}/><button type="button" aria-label={passwordVisible ? "Parolni yashirish" : "Parolni ko‘rsatish"} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(!passwordVisible)}><Icon name="eye"/></button></div>
-      <button id="auth-submit" className="button primary full" type="submit" disabled={busy}>{busy ? "Tekshirilmoqda…" : authMode === "setup" ? "Hisob yaratish" : "Tizimga kirish"}<Icon name="arrow"/></button>
+      <label htmlFor="auth-password">Parol</label><div className="password-field"><input id="auth-password" type={passwordVisible ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} autoComplete={authMode === "setup" || authTab === "register" ? "new-password" : "current-password"} minLength={12} maxLength={128} required placeholder={authMode === "setup" ? "Kamida 12 belgi" : "Parolingizni kiriting"}/><button type="button" aria-label={passwordVisible ? "Parolni yashirish" : "Parolni ko‘rsatish"} aria-pressed={passwordVisible} onClick={() => setPasswordVisible(!passwordVisible)}><Icon name="eye"/></button></div>
+      {authTab === "register" && authMode === "login" && <><label htmlFor="auth-confirm-password">Parolni takrorlang</label><div className="password-field"><input id="auth-confirm-password" type={passwordVisible ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} autoComplete="new-password" minLength={12} maxLength={128} required placeholder="Parolni qayta kiriting"/><Icon name="check"/></div></>}
+      <button id="auth-submit" className="button primary full" type="submit" disabled={busy}>{busy ? "Tekshirilmoqda…" : authMode === "setup" || authTab === "register" ? "Hisob yaratish" : "Kirish"}<Icon name="arrow"/></button>
     </form>}
+    {authMode === "login" && authTab === "login" && <div className="google-login-area"><div className="auth-divider"><span>yoki</span></div><button id="google-login" type="button" className="google-button" disabled={busy || !googleStatus?.configured} onClick={() => void startGoogle(false)}><GoogleMark/> Google orqali kirish</button>{!googleStatus?.configured && <p className="google-hint">Google kirishi hozir sozlanmagan. Login va parol orqali kiring.</p>}</div>}
+    {authMode === "login" && <button type="button" className="auth-switch" onClick={() => { setAuthTab(authTab === "login" ? "register" : "login"); setError(""); setPassword(""); setConfirmPassword(""); }}>{authTab === "login" ? "Hisobingiz yo‘qmi? Ro‘yxatdan o‘ting" : "Hisobingiz bormi? Kirish"}</button>}
     <p className="auth-note">Savol va ustun nomlari Gemini’ga yuborilishi mumkin. Fayl qatorlari shu serverda hisoblanadi.</p>
-  </section><p className="auth-footer">TAHLILCHI STUDIO · MA’LUMOTDAN QARORGACHA</p></main>;
+  </section></div><p className="auth-footer">TAHLILCHI STUDIO · MA’LUMOTDAN QARORGACHA</p></main>;
 
   const profile: Profile | undefined = dataset?.profile;
   const numericColumns = profile?.columns.filter(c => c.kind === "number") ?? [];
@@ -344,7 +362,7 @@ export default function Workspace() {
     <aside id="app-sidebar" className={`sidebar ${menuOpen ? "is-open" : ""}`} onKeyDown={event => { if (event.key === "Escape") { setMenuOpen(false); menuButton.current?.focus(); } }}>
       <button type="button" className="brand" onClick={() => navigate("home")}><BrandMark/><span>Tahlilchi Studio<small>BIZNES TAHLIL PLATFORMASI</small></span></button>
       <div className="sidebar-section">ASOSIY MENYU</div>
-      <Navigation view={view} navigate={navigate} hasDataset={!!dataset}/>
+      <Navigation view={view} navigate={navigate} hasDataset={!!dataset || datasets.length > 0}/>
       <div className="sidebar-section"><span>FAYLLARINGIZ</span><span className="count-badge">{datasets.length}</span></div>
       <nav id="dataset-list" aria-label="Yuklangan fayllar" className="dataset-list">{datasets.length === 0 && <p className="sidebar-empty">Hali fayl yuklanmagan.</p>}{datasets.map(item => <button key={item.id} type="button" className={`dataset-item ${item.id === dataset?.id ? "selected" : ""}`} onClick={() => void perform(() => openDataset(item.id))} disabled={busy} title={item.name}><Icon name="file"/><span>{item.name}</span></button>)}</nav>
       <button id="add-file" className="sidebar-add" type="button" onClick={() => navigate("home")}><Icon name="upload"/> Yangi fayl yuklash</button>
@@ -405,7 +423,7 @@ export default function Workspace() {
         {user?.role === "admin" && <details className="admin-panel"><summary>＋ Xodim hisobi</summary><form onSubmit={addUser} className="form-stack"><label>Login<input value={newUsername} onChange={e => setNewUsername(e.target.value)} minLength={3} maxLength={64} pattern="[a-zA-Z0-9_.\-]+" required /></label><label>Parol<input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} minLength={12} maxLength={128} required /></label><button className="button secondary" type="submit" disabled={busy}>Hisob yaratish</button><p role="status">{userMessage}</p></form></details>}
 <p className="account-note">Har bir hisob o‘z fayllari va tahlillari bilan ishlaydi.</p><button className="button secondary" onClick={() => void logout()} disabled={busy}><Icon name="logout"/>Hisobdan chiqish</button></section>
       <footer className="page-footer"><span>Tahlilchi Studio · Ma’lumotga asoslangan qarorlar</span><span>Hisoblash o‘z serveringizda</span></footer>
-    </div></main><Navigation view={view} navigate={navigate} hasDataset={!!dataset} mobile/>
+    </div></main><Navigation view={view} navigate={navigate} hasDataset={!!dataset || datasets.length > 0} mobile/>
   </div>;
 }
 
