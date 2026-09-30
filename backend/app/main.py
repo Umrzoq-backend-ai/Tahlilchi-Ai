@@ -141,7 +141,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "default-src 'self'; script-src 'self'"
                 + inline_script_sources
                 + "; style-src 'self'; "
-                "img-src 'self' data:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'"
+                "img-src 'self' data: https://*.googleusercontent.com; connect-src 'self'; object-src 'none'; frame-ancestors 'none'"
             )
             if not request.url.path.startswith(("/docs", "/redoc"))
             else "frame-ancestors 'none'"
@@ -313,13 +313,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             token = await request.app.state.google_oauth.exchange(
                 code, flow["verifier"], flow["redirect_uri"]
             )
-            subject, email = await asyncio.to_thread(
+            subject, email, display_name, picture_url = await asyncio.to_thread(
                 request.app.state.google_oauth.verify, token, flow["nonce"]
             )
             user = await asyncio.to_thread(
                 request.app.state.auth.google_identity,
                 subject,
                 email,
+                display_name,
+                picture_url,
                 flow["user_id"],
                 flow["session_hash"],
             )

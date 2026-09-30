@@ -21,14 +21,21 @@ def configured(settings, **changes):
     )
 
 
-def mock_provider(client, monkeypatch, subject="google-sub", email="person@gmail.com"):
+def mock_provider(
+    client,
+    monkeypatch,
+    subject="google-sub",
+    email="person@gmail.com",
+    display_name="Test Person",
+    picture_url="https://lh3.googleusercontent.com/a/test-avatar",
+):
     async def exchange(code, verifier, redirect_uri):
         assert code == "one-code" and len(verifier) >= 43 and redirect_uri.endswith(CALLBACK)
         return "verified-token"
 
     def verify(token, nonce):
         assert token == "verified-token" and len(nonce) >= 32
-        return subject, email
+        return subject, email, display_name, picture_url
 
     monkeypatch.setattr(client.app.state.google_oauth, "exchange", exchange)
     monkeypatch.setattr(client.app.state.google_oauth, "verify", verify)
@@ -42,7 +49,7 @@ def begin(client, link=False):
     url = response.json()["url"]
     params = {key: values[0] for key, values in parse_qs(urlsplit(url).query).items()}
     assert urlsplit(url).hostname == "accounts.google.com"
-    assert params["scope"] == "openid email"
+    assert params["scope"] == "openid email profile"
     assert params["prompt"] == "select_account"
     assert params["code_challenge_method"] == "S256"
     assert params["state"] == client.cookies.get("analyst_google_state")
@@ -78,6 +85,8 @@ def test_google_login_new_user_isolated_and_one_use(settings, monkeypatch):
         me = client.get("/api/v1/auth/me").json()
         assert me["user"]["id"] != admin["id"]
         assert me["user"]["google_email"] == "person@gmail.com"
+        assert me["user"]["display_name"] == "Test Person"
+        assert me["user"]["picture_url"] == "https://lh3.googleusercontent.com/a/test-avatar"
         assert client.get(f"/api/v1/datasets/{dataset['id']}").status_code == 404
         assert callback(client, params).status_code == 403
         client.headers["X-CSRF-Token"] = me["csrf_token"]
@@ -142,11 +151,18 @@ def test_verified_claim_requirements(settings, monkeypatch):
         "email_verified": True,
         "nonce": "expected",
         "hd": "company.uz",
+        "name": "  Example Person  ",
+        "picture": "https://lh3.googleusercontent.com/a/profile-photo",
     }
     monkeypatch.setattr(
         "app.google_oauth.id_token.verify_oauth2_token", lambda *a, **k: claims.copy()
     )
-    assert oauth.verify("token", "expected") == ("immutable-sub", "person@company.uz")
+    assert oauth.verify("token", "expected") == (
+        "immutable-sub",
+        "person@company.uz",
+        "Example Person",
+        "https://lh3.googleusercontent.com/a/profile-photo",
+    )
     with pytest.raises(AppError) as wrong_nonce:
         oauth.verify("token", "wrong")
     assert wrong_nonce.value.code == "GOOGLE_NONCE"

@@ -67,9 +67,16 @@ class AuthService:
                 );
                 CREATE TABLE IF NOT EXISTS google_identities (
                     sub TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-                    email TEXT NOT NULL
+                    email TEXT NOT NULL, display_name TEXT, picture_url TEXT
                 );
             """)
+            google_columns = {
+                row[1] for row in db.execute("PRAGMA table_info(google_identities)").fetchall()
+            }
+            if "display_name" not in google_columns:
+                db.execute("ALTER TABLE google_identities ADD COLUMN display_name TEXT")
+            if "picture_url" not in google_columns:
+                db.execute("ALTER TABLE google_identities ADD COLUMN picture_url TEXT")
 
     def needs_setup(self):
         with self.store.connect() as db:
@@ -227,7 +234,13 @@ class AuthService:
         }
 
     def google_identity(
-        self, subject: str, email: str, user_id: str | None = None, session_hash: str | None = None
+        self,
+        subject: str,
+        email: str,
+        display_name: str | None = None,
+        picture_url: str | None = None,
+        user_id: str | None = None,
+        session_hash: str | None = None,
     ):
         if not subject or len(subject) > 255 or not email or len(email) > 320:
             raise AppError("GOOGLE_IDENTITY", "Google hisob ma’lumoti yaroqsiz.", 401)
@@ -272,17 +285,21 @@ class AuthService:
                             409,
                         )
                     db.execute(
-                        "UPDATE google_identities SET user_id=?, email=? WHERE sub=?",
-                        (user_id, email, subject),
+                        "UPDATE google_identities SET user_id=?, email=?, display_name=?, picture_url=? WHERE sub=?",
+                        (user_id, email, display_name, picture_url, subject),
                     )
                     db.execute("DELETE FROM sessions WHERE user_id=?", (source_id,))
                     db.execute("DELETE FROM users WHERE id=?", (source_id,))
                 if not bound:
                     db.execute(
-                        "INSERT INTO google_identities VALUES (?, ?, ?)", (subject, user_id, email)
+                        "INSERT INTO google_identities (sub, user_id, email, display_name, picture_url) VALUES (?, ?, ?, ?, ?)",
+                        (subject, user_id, email, display_name, picture_url),
                     )
                 else:
-                    db.execute("UPDATE google_identities SET email=? WHERE sub=?", (email, subject))
+                    db.execute(
+                        "UPDATE google_identities SET email=?, display_name=?, picture_url=? WHERE sub=?",
+                        (email, display_name, picture_url, subject),
+                    )
                 target_id = user_id
             else:
                 bound = db.execute(
@@ -290,7 +307,10 @@ class AuthService:
                 ).fetchone()
                 if bound:
                     target_id = bound[0]
-                    db.execute("UPDATE google_identities SET email=? WHERE sub=?", (email, subject))
+                    db.execute(
+                        "UPDATE google_identities SET email=?, display_name=?, picture_url=? WHERE sub=?",
+                        (email, display_name, picture_url, subject),
+                    )
                 else:
                     if db.execute("SELECT 1 FROM users LIMIT 1").fetchone() is None:
                         raise AppError(
@@ -312,14 +332,21 @@ class AuthService:
                         ),
                     )
                     db.execute(
-                        "INSERT INTO google_identities VALUES (?, ?, ?)",
-                        (subject, target_id, email),
+                        "INSERT INTO google_identities (sub, user_id, email, display_name, picture_url) VALUES (?, ?, ?, ?, ?)",
+                        (subject, target_id, email, display_name, picture_url),
                     )
             row = db.execute(
-                "SELECT u.id, u.username, u.role, g.email FROM users u LEFT JOIN google_identities g ON g.user_id=u.id WHERE u.id=?",
+                "SELECT u.id, u.username, u.role, g.email, g.display_name, g.picture_url FROM users u LEFT JOIN google_identities g ON g.user_id=u.id WHERE u.id=?",
                 (target_id,),
             ).fetchone()
-        return {"id": row[0], "username": row[1], "role": row[2], "google_email": row[3]}
+        return {
+            "id": row[0],
+            "username": row[1],
+            "role": row[2],
+            "google_email": row[3],
+            "display_name": row[4],
+            "picture_url": row[5],
+        }
 
     def new_session(self, user_id):
         token = secrets.token_urlsafe(32)
@@ -336,11 +363,18 @@ class AuthService:
             return None
         with self.store.connect() as db:
             row = db.execute(
-                "SELECT u.id, u.username, u.role, g.email FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN google_identities g ON g.user_id=u.id WHERE s.token_hash=? AND s.expires_at>?",
+                "SELECT u.id, u.username, u.role, g.email, g.display_name, g.picture_url FROM sessions s JOIN users u ON u.id=s.user_id LEFT JOIN google_identities g ON g.user_id=u.id WHERE s.token_hash=? AND s.expires_at>?",
                 (token_hash(token), time.time()),
             ).fetchone()
         return (
-            {"id": row[0], "username": row[1], "role": row[2], "google_email": row[3]}
+            {
+                "id": row[0],
+                "username": row[1],
+                "role": row[2],
+                "google_email": row[3],
+                "display_name": row[4],
+                "picture_url": row[5],
+            }
             if row
             else None
         )

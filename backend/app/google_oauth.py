@@ -4,7 +4,7 @@ import base64
 import hashlib
 import hmac
 import secrets
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 import httpx
 from google.auth.transport.requests import Request
@@ -40,7 +40,7 @@ class GoogleOAuth:
             "client_id": self.settings.google_client_id,
             "redirect_uri": redirect_uri,
             "response_type": "code",
-            "scope": "openid email",
+            "scope": "openid email profile",
             "prompt": "select_account",
             "state": state,
             "nonce": nonce,
@@ -77,7 +77,7 @@ class GoogleOAuth:
             raise AppError("GOOGLE_TOKEN", "Google hisob tasdig‘i kelmadi.", 502)
         return token
 
-    def verify(self, token: str, expected_nonce: str) -> tuple[str, str]:
+    def verify(self, token: str, expected_nonce: str) -> tuple[str, str, str | None, str | None]:
         try:
             claims = id_token.verify_oauth2_token(
                 token, Request(), self.settings.google_client_id, clock_skew_in_seconds=10
@@ -99,4 +99,15 @@ class GoogleOAuth:
             raise AppError(
                 "GOOGLE_DOMAIN", "Bu Google hisobi tashkilot domeniga tegishli emas.", 403
             )
-        return subject, email.lower()
+        name = claims.get("name")
+        display_name = name.strip()[:200] if isinstance(name, str) and name.strip() else None
+        picture = claims.get("picture")
+        picture_url = None
+        if isinstance(picture, str) and len(picture) <= 2048:
+            parsed = urlsplit(picture)
+            hostname = (parsed.hostname or "").lower()
+            if parsed.scheme == "https" and (
+                hostname == "googleusercontent.com" or hostname.endswith(".googleusercontent.com")
+            ):
+                picture_url = picture
+        return subject, email.lower(), display_name, picture_url

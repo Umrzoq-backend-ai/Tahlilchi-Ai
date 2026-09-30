@@ -29,7 +29,10 @@ export type AgentRun = {
   plan?: AgentPlan | null; analysis?: Analysis | null; events?: { seq: number; stage: string }[];
 };
 export type AgentStatus = { configured: boolean; provider: string; model: string; message?: string; data_policy: string };
-export type User = { id: string; username: string; role: "admin" | "user"; google_email?: string | null };
+export type User = {
+  id: string; username: string; role: "admin" | "user";
+  google_email?: string | null; display_name?: string | null; picture_url?: string | null;
+};
 export type GoogleStatus = { configured: boolean; linked: boolean; redirect_uri: string };
 export type Session = { authenticated: true; user: User; csrf_token: string } | { authenticated: false; setup_allowed: boolean };
 export type Health = { status: string; version: string; max_upload_bytes: number; agent_enabled: boolean };

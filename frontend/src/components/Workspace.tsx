@@ -355,10 +355,11 @@ export default function Workspace() {
   const activeRun = run && ["queued", "running"].includes(run.status);
   const currentRuns = batchQuestions.length ? batchRuns : run ? [run] : [];
   const pageTitle = { home: "Xush kelibsiz!", data: "Ma’lumotlar to‘plami", ai: "Sun’iy intellekt tahlilchisi", results: "Tahlil natijalari", account: "Hisob sozlamalari" }[view];
+  const displayName = user?.display_name ?? user?.google_email ?? user?.username ?? "Foydalanuvchi";
 
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">Asosiy mazmunga o‘tish</a>
-    <header className="topbar"><button ref={menuButton} id="menu-toggle" className="icon-button mobile-menu-button" aria-label={menuOpen ? "Menyuni yopish" : "Menyuni ochish"} aria-expanded={menuOpen} aria-controls="app-sidebar" onClick={() => setMenuOpen(!menuOpen)}><Icon name={menuOpen ? "close" : "menu"}/></button><div className="breadcrumb"><BrandMark/><span>{navigation.find(item => item.id === view)?.label}</span>{dataset && <><span className="topbar-slash">/</span><span className="breadcrumb-file" title={dataset.name}>{dataset.name}</span></>}</div><div className="topbar-right"><span className="language-label">O‘zbekcha / UZ</span><button className="avatar" aria-label="Hisob sozlamalarini ochish" onClick={() => navigate("account")}>{user?.username[0]?.toUpperCase()}</button></div></header>
+    <header className="topbar"><button ref={menuButton} id="menu-toggle" className="icon-button mobile-menu-button" aria-label={menuOpen ? "Menyuni yopish" : "Menyuni ochish"} aria-expanded={menuOpen} aria-controls="app-sidebar" onClick={() => setMenuOpen(!menuOpen)}><Icon name={menuOpen ? "close" : "menu"}/></button><div className="breadcrumb"><BrandMark/><span>{navigation.find(item => item.id === view)?.label}</span>{dataset && <><span className="topbar-slash">/</span><span className="breadcrumb-file" title={dataset.name}>{dataset.name}</span></>}</div><div className="topbar-right"><span className="language-label">O‘zbekcha / UZ</span><button className="avatar-button" aria-label="Hisob sozlamalarini ochish" onClick={() => navigate("account")}><UserAvatar user={user}/></button></div></header>
     <aside id="app-sidebar" className={`sidebar ${menuOpen ? "is-open" : ""}`} onKeyDown={event => { if (event.key === "Escape") { setMenuOpen(false); menuButton.current?.focus(); } }}>
       <button type="button" className="brand" onClick={() => navigate("home")}><BrandMark/><span>Tahlilchi Studio<small>BIZNES TAHLIL PLATFORMASI</small></span></button>
       <div className="sidebar-section">ASOSIY MENYU</div>
@@ -367,7 +368,7 @@ export default function Workspace() {
       <nav id="dataset-list" aria-label="Yuklangan fayllar" className="dataset-list">{datasets.length === 0 && <p className="sidebar-empty">Hali fayl yuklanmagan.</p>}{datasets.map(item => <button key={item.id} type="button" className={`dataset-item ${item.id === dataset?.id ? "selected" : ""}`} onClick={() => void perform(() => openDataset(item.id))} disabled={busy} title={item.name}><Icon name="file"/><span>{item.name}</span></button>)}</nav>
       <button id="add-file" className="sidebar-add" type="button" onClick={() => navigate("home")}><Icon name="upload"/> Yangi fayl yuklash</button>
       {datasets.length === 0 && <button id="demo-sidebar-button" className="sidebar-demo" type="button" onClick={() => void loadDemo()} disabled={busy}><Icon name="spark"/><span><strong>Namunada sinab ko‘rish</strong><small>Tayyor savdo jadvali</small></span></button>}
-      <div className="sidebar-bottom"><div className="secure-note"><Icon name="shield"/><span>Hisoblash shu serverda<small>Fayl qatorlari AIga yuborilmaydi.</small></span></div><button className="workspace-label" onClick={() => navigate("account")}><span className="avatar">{user?.username[0]?.toUpperCase()}</span><span><strong>{user?.google_email ?? user?.username}</strong><small>{user?.role === "admin" ? "Administrator" : "Shaxsiy ish maydoni"}</small></span></button><button id="logout-button" className="logout-button" onClick={() => void logout()} disabled={busy}><Icon name="logout"/> Hisobdan chiqish</button></div>
+      <div className="sidebar-bottom"><div className="secure-note"><Icon name="shield"/><span>Hisoblash shu serverda<small>Fayl qatorlari AIga yuborilmaydi.</small></span></div><button className="workspace-label" onClick={() => navigate("account")}><UserAvatar user={user}/><span><strong>{displayName}</strong><small>{user?.role === "admin" ? "Administrator" : user?.google_email ?? "Shaxsiy ish maydoni"}</small></span></button><button id="logout-button" className="logout-button" onClick={() => void logout()} disabled={busy}><Icon name="logout"/> Hisobdan chiqish</button></div>
     </aside>
     <main className="main-area" id="main-content"><div className="content">
       <div className="hero"><div><p className="eyebrow">ANALITIKA ISH MAYDONI</p><h1 id="page-title" tabIndex={-1}>{pageTitle}</h1><p>{{home: "Faylingizni yuklang. Savol bering. Raqamlarni tushuning.", data: "Tahlildan oldin ma’lumotlaringiz tuzilishi va sifatini tekshiring.", ai: "Savolingizdan tekshirilgan hisob-kitobgacha.", results: "Hisoblangan javoblar, diagrammalar va oldingi tahlillar.", account: "Hisobingiz va kirish usullarini boshqaring."}[view]}</p></div><span className="hero-pill"><Icon name="shield"/><span>Ma’lumotlar o‘z serveringizda<small>Hisob-kitoblar faylingiz asosida</small></span></span></div>
@@ -414,7 +415,7 @@ export default function Workspace() {
         <div hidden={view !== "results"}>{result ? <Results analysis={result}/> : <section className="card empty-state"><Icon name="chart"/><h2>Hali tahlil natijasi yo‘q</h2><p>AIga savol bering yoki tezkor hisoblashni tanlang.</p><button className="button primary" onClick={() => navigate("ai")}>Tahlilni boshlash<Icon name="arrow"/></button></section>}
         {history.length > 0 && <section className="history-panel"><div className="section-title"><h2>Fayl bo‘yicha tahlillar tarixi</h2><span>{history.length} TA NATIJA</span></div><div id="history-list">{history.map(item => <button key={item.id} className={`history-item ${item.id === result?.id ? "selected" : ""}`} type="button" onClick={() => { setResult(item); window.scrollTo({ top: 0, behavior: "instant" }); }}><Icon name="clock"/><span><strong>{operations.find(op => op.id === item.request?.operation)?.title ?? "Tahlil"}</strong><small>{item.result?.summary ?? "Natija"}</small></span><time>{shortDate(item.created_at)}</time><Icon name="arrow"/></button>)}</div></section>}</div>
       </div>}
-      <section hidden={view !== "account"} className="card account-card"><div className="account-heading"><span className="avatar">{user?.username[0]?.toUpperCase()}</span><div><h2>{user?.username}</h2><p>{user?.role === "admin" ? "Administrator" : "Foydalanuvchi"}</p></div></div>
+      <section hidden={view !== "account"} className="card account-card"><div className="account-heading"><UserAvatar user={user}/><div><h2>{displayName}</h2><p>{user?.role === "admin" ? "Administrator" : "Foydalanuvchi"}{user?.google_email ? ` · ${user.google_email}` : ""}</p></div></div>
         {googleStatus?.configured && <div className="google-link-control">
           {user?.google_email
             ? <p className="google-linked">✓ Google: {user.google_email}</p>
@@ -425,6 +426,14 @@ export default function Workspace() {
       <footer className="page-footer"><span>Tahlilchi Studio · Ma’lumotga asoslangan qarorlar</span><span>Hisoblash o‘z serveringizda</span></footer>
     </div></main><Navigation view={view} navigate={navigate} hasDataset={!!dataset || datasets.length > 0} mobile/>
   </div>;
+}
+
+function UserAvatar({ user }: { user: User | null }) {
+  const initial = (user?.display_name ?? user?.google_email ?? user?.username ?? "F")[0]?.toUpperCase();
+  return <span className="avatar" aria-hidden="true">
+    <span className="avatar-fallback">{initial}</span>
+    {user?.picture_url && <img src={user.picture_url} alt="" referrerPolicy="no-referrer" onError={event => { event.currentTarget.style.display = "none"; }}/>}
+  </span>;
 }
 
 function message(cause: unknown) { return cause instanceof Error ? cause.message : "So‘rov bajarilmadi. Qayta urinib ko‘ring."; }
