@@ -86,6 +86,10 @@ class Settings:
     def from_env(cls) -> "Settings":
         # Never execute a .env as shell code; exported variables take precedence.
         values = {**dotenv_values(PROJECT_ROOT / ".env"), **os.environ}
+        public_origin = values.get("ANALYST_PUBLIC_ORIGIN", "").rstrip("/")
+        railway_domain = values.get("RAILWAY_PUBLIC_DOMAIN", "").strip().strip("/")
+        if not public_origin and railway_domain:
+            public_origin = f"https://{railway_domain}"
         size = int(values.get("ANALYST_MAX_UPLOAD_MB", "20"))
         timeout = int(values.get("ANALYST_JOB_TIMEOUT", "60"))
         if size < 1 or timeout < 1:
@@ -94,7 +98,7 @@ class Settings:
             data_dir=(PROJECT_ROOT / values.get("ANALYST_DATA_DIR", ".data")).resolve(),
             max_upload_bytes=size * 1024 * 1024,
             job_timeout=timeout,
-            public_origin=values.get("ANALYST_PUBLIC_ORIGIN", "").rstrip("/"),
+            public_origin=public_origin,
             session_hours=int(values.get("ANALYST_SESSION_HOURS", "12")),
             google_client_id=values.get("ANALYST_GOOGLE_CLIENT_ID", "").strip(),
             google_client_secret=values.get("ANALYST_GOOGLE_CLIENT_SECRET", "").strip(),

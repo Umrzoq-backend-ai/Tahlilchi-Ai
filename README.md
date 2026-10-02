@@ -4,6 +4,8 @@ CSV yoki Excel jadvaliga oddiy tilda savol bering. Gemini tahlil rejasini va Pyt
 
 **v0.5 — Next.js/React/TypeScript interfeysi, Gemini agenti, lokal va Google login, foydalanuvchiga tegishli ish maydoni.** Tayyor tahlillar kalitsiz ham ishlaydi. Kompaniya pilot serveri uchun [deployment yo‘riqnomasi](docs/DEPLOYMENT.md) bor; tashqi serverga hali o‘rnatilmagan. Billing va prognoz kiritilmagan.
 
+Railway deployi uchun repository ildizida `Dockerfile` va `railway.toml` bor. Railway service’ga `/data` mount path bilan Volume ulang va maxfiy qiymatlarni Variables bo‘limida kiriting. Birinchi deployda `ANALYST_BOOTSTRAP_USERNAME` va kamida 12 belgili `ANALYST_BOOTSTRAP_PASSWORD` ham kiriting; admin yaratilgach bu ikki vaqtinchalik variable’ni Railway’dan o‘chiring. `RAILWAY_PUBLIC_DOMAIN` mavjud bo‘lsa, HTTPS origin avtomatik sozlanadi. Bitta worker ishlatiladi; deploydan keyin Bubblewrap sandboxining platformada ishlashini alohida tekshiring.
+
 ## Kompaniyaga foydasi
 
 - Savdo va xarajat fayllarida davriy hisobotni tez tayyorlash.
