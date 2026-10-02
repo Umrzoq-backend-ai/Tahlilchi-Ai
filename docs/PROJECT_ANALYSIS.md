@@ -1,4 +1,4 @@
-# Autonomous Data Analyst Agent — loyiha tahlili
+# Tahlilchi AI — loyiha tahlili
 
 > Bu hujjat dastlabki arxitektura rejasidir. Keyin yaratilgan v0.5 kodining amaldagi imkoniyatlari va ishga tushirish yo‘riqnomasi [README.md](../README.md)da. Quyidagi “hozirgi holat” tahlil yozilgan paytga tegishli.
 

@@ -1,4 +1,4 @@
-# Autonomous Data Analyst Agent — texnik topshiriq
+# Tahlilchi AI — texnik topshiriq
 
 Holati: README asosidagi maqsadli texnik topshiriq. Talablarning bir qismi lokal v0.5 prototipda bajarildi; amaldagi imkoniyat va cheklovlar [README.md](../README.md)da aniq ko‘rsatilgan. Arxitektura va papka rejasi: [PROJECT_ANALYSIS.md](PROJECT_ANALYSIS.md).
 

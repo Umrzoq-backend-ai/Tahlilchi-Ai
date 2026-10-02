@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Tahlilchi Studio — Ma’lumotdan qarorgacha",
+  title: "Tahlilchi AI — Ma’lumotdan qarorgacha",
   description: "CSV va Excel fayllarini tekshiring, tahlil qiling va Gemini agentidan savol so‘rang.",
 };
 

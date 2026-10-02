@@ -1,4 +1,4 @@
-Autonomous Data Analyst Agent (Avtonom Data Tahlilchi Agenti)
+Tahlilchi AI (Avtonom ma’lumot tahlilchisi)
 Bu loyiha Data Science bilimlaringiz va FastAPI/Django backend qobiliyatingizni to‘liq ko‘rsatib beradi. Foydalanuvchi tizimga ixtiyoriy CSV yoki Excel faylini yuklaydi va chatbotga oddiy tilda savol beradi (masalan: "Mijozlarimiz qaysi oylarda eng ko‘p pul sarflashgan va keyingi oy uchun prognoz qanday?").
 Agent qanday ishlaydi: Agent (masalan, LangChain yoki CrewAI yordamida qurilgan) yuklangan faylning strukturasini o‘rganadi, so‘rovga javob topish uchun o‘zi mustaqil ravishda Pandas/Python kodini yozadi, kodni xavfsiz muhitda ishga tushiradi (code interpreter) va natijani grafik (Matplotlib/Seaborn) hamda matn shaklida foydalanuvchiga qaytaradi. Agar yozgan kodida xatolik (Error) chiqsa, agent xatoni o‘zi o‘qib, kodni qaytadan tuzatadi (Self-Correction loop).
 Sizning Stack'ingiz uchun afzalligi:

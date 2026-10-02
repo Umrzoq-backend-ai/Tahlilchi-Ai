@@ -75,7 +75,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             await asyncio.to_thread(app.state.agent.close)
 
     app = FastAPI(
-        title="Data Analyst",
+        title="Tahlilchi AI",
         version="0.5.0",
         description="CSV/Excel, Gemini agenti va mustaqil tekshiriladigan hisoblashlar.",
         lifespan=lifespan,

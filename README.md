@@ -1,4 +1,4 @@
-# Data Analyst — Gemini agenti
+# Tahlilchi AI — biznes ma’lumotlarini tahlil qilish platformasi
 
 CSV yoki Excel jadvaliga oddiy tilda savol bering. Gemini tahlil rejasini va Python kodini yozadi; kod lokal, tarmoqsiz muhitda hisoblaydi. Ko‘rsatiladigan natija mustaqil Pandas hisoblashlari bilan solishtiriladi. Bir nechta savolni yangi qatorda `1.`, `2.`, `3.` deb yozsangiz, interfeys ularni navbat bilan alohida tekshiradi.
 

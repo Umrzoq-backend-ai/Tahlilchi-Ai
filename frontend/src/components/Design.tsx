@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
+import { translate, type Language } from "@/lib/i18n";
 
-export type IconName = "home" | "file" | "spark" | "chart" | "user" | "upload" | "check" | "menu" | "arrow" | "clock" | "shield" | "close" | "eye" | "logout";
+export type IconName = "home" | "file" | "spark" | "chart" | "user" | "upload" | "check" | "menu" | "arrow" | "clock" | "shield" | "close" | "eye" | "logout" | "sun" | "moon";
 const paths: Record<IconName, ReactNode> = {
   home: <><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></>,
   file: <><path d="M14 3H5v18h14V8Z"/><path d="M14 3v5h5M8 12h8M8 16h8"/></>,
@@ -16,6 +17,8 @@ const paths: Record<IconName, ReactNode> = {
   close: <path d="m6 6 12 12M6 18 18 6"/>,
   eye: <><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></>,
   logout: <><path d="M10 3H4v18h6M9 12h12m-5-5 5 5-5 5"/></>,
+  sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></>,
+  moon: <path d="M20.5 14.2A8 8 0 0 1 9.8 3.5 9 9 0 1 0 20.5 14.2Z"/>,
 };
 export function Icon({ name, className = "" }: { name: IconName; className?: string }) {
   return <svg className={`icon ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
@@ -31,6 +34,6 @@ export const navigation: { id: View; label: string; short: string; icon: IconNam
   { id: "results", label: "Tarix va hisobotlar", short: "Natijalar", icon: "chart" },
   { id: "account", label: "Hisob sozlamalari", short: "Hisob", icon: "user" },
 ];
-export function Navigation({ view, navigate, hasDataset, mobile = false }: { view: View; navigate: (view: View) => void; hasDataset: boolean; mobile?: boolean }) {
-  return <nav className={mobile ? "mobile-nav" : "primary-nav"} aria-label={mobile ? "Mobil navigatsiya" : "Asosiy navigatsiya"}>{navigation.map(item => <button key={item.id} type="button" data-view-link={item.id} aria-current={view === item.id ? "page" : undefined} disabled={!hasDataset && ["data", "ai", "results"].includes(item.id)} onClick={() => navigate(item.id)}><Icon name={item.icon}/><span>{mobile ? item.short : item.label}</span></button>)}</nav>;
+export function Navigation({ view, navigate, hasDataset, language, mobile = false }: { view: View; navigate: (view: View) => void; hasDataset: boolean; language: Language; mobile?: boolean }) {
+  return <nav className={mobile ? "mobile-nav" : "primary-nav"} aria-label={mobile ? "Mobile navigation" : "Main navigation"}>{navigation.map(item => <button key={item.id} type="button" data-view-link={item.id} aria-current={view === item.id ? "page" : undefined} disabled={!hasDataset && ["data", "ai", "results"].includes(item.id)} onClick={() => navigate(item.id)}><Icon name={item.icon}/><span>{translate(language, mobile ? item.short : item.label)}</span></button>)}</nav>;
 }
