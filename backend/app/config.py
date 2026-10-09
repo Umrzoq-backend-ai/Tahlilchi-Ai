@@ -87,6 +87,9 @@ class Settings:
         # Never execute a .env as shell code; exported variables take precedence.
         values = {**dotenv_values(PROJECT_ROOT / ".env"), **os.environ}
         public_origin = values.get("ANALYST_PUBLIC_ORIGIN", "").rstrip("/")
+        render_origin = values.get("RENDER_EXTERNAL_URL", "").strip().rstrip("/")
+        if not public_origin and render_origin:
+            public_origin = render_origin
         railway_domain = values.get("RAILWAY_PUBLIC_DOMAIN", "").strip().strip("/")
         if not public_origin and railway_domain:
             public_origin = f"https://{railway_domain}"

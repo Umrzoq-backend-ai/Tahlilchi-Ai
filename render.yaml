@@ -1,0 +1,36 @@
+# Render Free demo. Local accounts/uploads reset on sleep, restart, or redeploy.
+# Use a paid persistent disk or external storage before keeping real company data.
+services:
+  - type: web
+    name: tahlilchi-ai
+    runtime: docker
+    repo: https://github.com/Umrzoq-backend-ai/Tahlilchi-Ai
+    branch: main
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: ANALYST_DATA_DIR
+        value: /data
+      - key: ANALYST_LLM_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai
+      - key: ANALYST_LLM_MODEL
+        value: gemini-2.5-flash
+      - key: ANALYST_LLM_ALLOW_REMOTE
+        value: "true"
+      - key: ANALYST_LLM_JSON_MODE
+        value: schema
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ANALYST_BOOTSTRAP_USERNAME
+        sync: false
+      - key: ANALYST_BOOTSTRAP_PASSWORD
+        sync: false
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"
