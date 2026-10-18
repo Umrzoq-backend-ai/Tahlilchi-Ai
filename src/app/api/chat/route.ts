@@ -25,7 +25,7 @@ Foydalanuvchi savoli: ${message}
 `;
 
     const response = await ai.models.generateContent({
-      model: model_name || 'gemini-2.0-flash',
+      model: model_name || 'gemini-2.5-flash',
       contents: prompt,
     });
 

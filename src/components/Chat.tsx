@@ -43,13 +43,18 @@ export default function Chat({ transcript, mode, videoUrl, onSeek }: ChatProps) 
     const textToSend = questionText || input.trim();
     if (!textToSend || loading) return;
 
-    const apiKey = localStorage.getItem('tahlilchi_api_key');
+    const apiKey =
+      localStorage.getItem('quanta_api_key') ||
+      localStorage.getItem('tahlilchi_api_key');
     if (!apiKey) {
       alert('Iltimos, avval Sozlamalarda Gemini API kalitini saqlang.');
       return;
     }
 
-    const model = localStorage.getItem('tahlilchi_model') || 'gemini-2.0-flash';
+    const model =
+      localStorage.getItem('quanta_model') ||
+      localStorage.getItem('tahlilchi_model') ||
+      'gemini-2.5-flash';
 
     const userMsg: ChatMessage = { sender: 'user', text: textToSend };
     setMessages((prev) => [...prev, userMsg]);

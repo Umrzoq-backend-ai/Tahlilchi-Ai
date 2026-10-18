@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get('content-type') || '';
     let apiKey = '';
-    let modelName = 'gemini-2.0-flash';
+    let modelName = 'gemini-2.5-flash';
     let mode: AnalysisMode = 'meeting';
     let targetLanguage: OutputLanguage = 'uz';
     let promptText = '';
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
       apiKey = (formData.get('api_key') as string) || '';
-      modelName = (formData.get('model_name') as string) || 'gemini-2.0-flash';
+      modelName = (formData.get('model_name') as string) || 'gemini-2.5-flash';
       mode = (formData.get('mode') as AnalysisMode) || 'meeting';
       targetLanguage = (formData.get('target_language') as OutputLanguage) || 'uz';
       promptText = (formData.get('prompt') as string) || '';
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     } else {
       const body = await req.json();
       apiKey = body.api_key;
-      modelName = body.model_name || 'gemini-2.0-flash';
+      modelName = body.model_name || 'gemini-2.5-flash';
       mode = body.mode || 'meeting';
       targetLanguage = body.target_language || 'uz';
       promptText = body.prompt || '';

@@ -158,6 +158,20 @@ export default function AnalyzerPage() {
     } catch (e) {
       // ignore
     }
+
+    // Check URL query parameters (e.g. /analyzer?mode=education)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const queryMode = params.get('mode') as AnalysisMode;
+      if (
+        queryMode &&
+        ['meeting', 'news', 'education', 'child', 'interview', 'pitch', 'chat'].includes(queryMode)
+      ) {
+        setMode(queryMode);
+      }
+    } catch (e) {
+      // ignore
+    }
   }, []);
 
   const handleSeek = (timeStr: string) => {
