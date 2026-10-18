@@ -97,7 +97,7 @@ export default function HistoryPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `quanta_history_${Date.now()}.json`;
+    a.download = `tahlilchi_history_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -121,8 +121,8 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {/* Filter and Action Bar (Screenshot 5) */}
-      <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl mb-6 space-y-4">
+      {/* Filter and Action Bar with Gradient Backdrop */}
+      <div className="bg-gradient-to-b from-[#0e172a]/95 to-[#090f1e]/95 border border-slate-800/80 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-xl mb-6 space-y-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
@@ -208,14 +208,14 @@ export default function HistoryPage() {
 
       {/* Main Content Area */}
       {filteredHistory.length === 0 ? (
-        /* Empty State Illustration (Matching Screenshot 5) */
-        <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-12 sm:p-16 text-center shadow-xl flex flex-col items-center justify-center">
+        /* Empty State Illustration with Atmospheric Backdrop */
+        <div className="bg-gradient-to-b from-[#0e172a]/95 to-[#080d1a]/95 border border-slate-800/80 rounded-3xl p-12 sm:p-16 text-center shadow-xl backdrop-blur-xl flex flex-col items-center justify-center">
           {/* SVG Bar Chart Graphic */}
           <div className="w-36 h-28 mb-6 relative flex items-end justify-center gap-3">
-            <div className="w-5 h-16 rounded-t-lg bg-gradient-to-t from-blue-600/30 to-blue-500/80 border-t border-blue-400" />
-            <div className="w-5 h-24 rounded-t-lg bg-gradient-to-t from-cyan-600/40 to-cyan-400 border-t border-cyan-300 shadow-lg shadow-cyan-500/20" />
-            <div className="w-5 h-10 rounded-t-lg bg-gradient-to-t from-blue-700/30 to-blue-600/60 border-t border-blue-500" />
-            <div className="w-5 h-20 rounded-t-lg bg-gradient-to-t from-emerald-600/30 to-emerald-400/80 border-t border-emerald-300" />
+            <div className="w-5 h-16 rounded-t-lg bg-gradient-to-t from-blue-600/30 to-blue-500/80 border-t border-blue-400 shadow-sm" />
+            <div className="w-5 h-24 rounded-t-lg bg-gradient-to-t from-cyan-600/40 to-cyan-400 border-t border-cyan-300 shadow-lg shadow-cyan-500/25" />
+            <div className="w-5 h-10 rounded-t-lg bg-gradient-to-t from-indigo-700/30 to-indigo-600/60 border-t border-indigo-500 shadow-sm" />
+            <div className="w-5 h-20 rounded-t-lg bg-gradient-to-t from-emerald-600/30 to-emerald-400/80 border-t border-emerald-300 shadow-sm" />
           </div>
 
           <h3 className="text-xl font-bold text-white mb-2">{t.history.emptyTitle}</h3>
@@ -225,14 +225,14 @@ export default function HistoryPage() {
 
           <Link
             href="/analyzer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-xl shadow-blue-600/25 transition-all"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-xs shadow-xl shadow-blue-600/25 hover:shadow-cyan-500/30 transition-all"
           >
             <span>Go to Analyzer</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       ) : (
-        /* History Grid Cards */
+        /* History Grid Cards with Unique Card Gradients */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredHistory.map((item) => {
             const Icon = MODE_ICONS[item.mode] || Briefcase;
@@ -240,7 +240,7 @@ export default function HistoryPage() {
               <div
                 key={item.id}
                 onClick={() => handleOpenItem(item)}
-                className="bg-[#0f172a] border border-slate-800 hover:border-slate-700 rounded-3xl p-5 shadow-xl hover:shadow-2xl transition-all cursor-pointer group flex flex-col justify-between"
+                className="bg-gradient-to-b from-[#0f172a] to-[#090e1c] border border-slate-800/80 hover:border-blue-500/50 rounded-3xl p-5 shadow-xl hover:shadow-2xl hover:shadow-blue-500/10 transition-all cursor-pointer group flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-3">

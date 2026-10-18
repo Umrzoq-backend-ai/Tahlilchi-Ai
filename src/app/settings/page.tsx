@@ -125,7 +125,7 @@ export default function SettingsPage() {
 
       <div className="space-y-6">
         {/* 1. API KEY SECTION (Screenshot 7 & 8) */}
-        <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl">
+        <div className="bg-gradient-to-b from-[#0e172a]/95 to-[#090e1c]/95 border border-slate-800/80 rounded-3xl p-6 sm:p-7 shadow-xl backdrop-blur-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <div className="flex items-center gap-2">
@@ -191,7 +191,7 @@ export default function SettingsPage() {
         </div>
 
         {/* 2. AI MODEL SELECTION (Screenshot 8) */}
-        <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-6 sm:p-7 shadow-xl">
+        <div className="bg-gradient-to-b from-[#0e172a]/95 to-[#090e1c]/95 border border-slate-800/80 rounded-3xl p-6 sm:p-7 shadow-xl backdrop-blur-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
             <div>
               <span className="text-xs font-bold text-slate-400 tracking-wider uppercase">
@@ -219,7 +219,7 @@ export default function SettingsPage() {
                   onClick={() => setSelectedModel(m.id)}
                   className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-start justify-between gap-4 ${
                     isSelected
-                      ? 'bg-blue-600/10 border-blue-500/80 shadow-lg shadow-blue-500/5'
+                      ? 'bg-blue-600/10 border-blue-500/80 shadow-lg shadow-blue-500/10'
                       : 'bg-[#0a0f1d] border-slate-800/80 hover:border-slate-700 hover:bg-[#0c1428]'
                   }`}
                 >
@@ -265,7 +265,7 @@ export default function SettingsPage() {
           <button
             type="button"
             onClick={handleSave}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-xl shadow-blue-600/25 hover:shadow-blue-600/40 transition-all flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-sm shadow-xl shadow-blue-600/30 hover:shadow-cyan-500/40 transition-all flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>{t.settings.save}</span>

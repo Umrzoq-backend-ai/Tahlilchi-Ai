@@ -62,7 +62,7 @@ export default function AboutPage() {
       {/* Grid of Sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
         {/* Mission Card */}
-        <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-7 shadow-xl flex flex-col justify-between">
+        <div className="bg-gradient-to-b from-[#0e172a]/95 to-[#090e1c]/95 border border-slate-800/80 rounded-3xl p-7 shadow-xl backdrop-blur-xl flex flex-col justify-between">
           <div>
             <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-4">
               <Zap className="w-5 h-5" />
@@ -79,7 +79,7 @@ export default function AboutPage() {
         </div>
 
         {/* Technology Card */}
-        <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-7 shadow-xl flex flex-col justify-between">
+        <div className="bg-gradient-to-b from-[#0e172a]/95 to-[#090e1c]/95 border border-slate-800/80 rounded-3xl p-7 shadow-xl backdrop-blur-xl flex flex-col justify-between">
           <div>
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4">
               <Layers className="w-5 h-5" />
@@ -97,7 +97,7 @@ export default function AboutPage() {
       </div>
 
       {/* Tech Specifications */}
-      <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-7 sm:p-9 shadow-xl mb-12">
+      <div className="bg-gradient-to-b from-[#0e172a]/95 to-[#090e1c]/95 border border-slate-800/80 rounded-3xl p-7 sm:p-9 shadow-xl backdrop-blur-xl mb-12">
         <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
           <Cpu className="w-5 h-5 text-cyan-400" />
           <span>Core Architectural Advantages</span>
@@ -124,7 +124,7 @@ export default function AboutPage() {
       </div>
 
       {/* Creator Info & CTA */}
-      <div className="bg-gradient-to-r from-blue-900/30 via-cyan-900/20 to-blue-900/30 border border-blue-500/30 rounded-3xl p-8 sm:p-10 text-center flex flex-col items-center">
+      <div className="bg-gradient-to-r from-blue-900/30 via-indigo-900/20 to-cyan-900/30 border border-blue-500/30 rounded-3xl p-8 sm:p-10 text-center flex flex-col items-center">
         <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-cyan-400 mb-4">
           <Users className="w-6 h-6" />
         </div>
@@ -137,7 +137,7 @@ export default function AboutPage() {
         </p>
         <Link
           href="/analyzer"
-          className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all"
+          className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-sm shadow-xl shadow-blue-600/30 hover:shadow-cyan-500/40 transition-all"
         >
           <span>Launch Analyzer Studio</span>
           <ArrowRight className="w-4 h-4" />

@@ -95,11 +95,11 @@ const translations: Record<Language, Translations> = {
       settings: 'Settings',
     },
     hero: {
-      badge: 'Quanta AI • Powered by Gemini',
+      badge: 'Tahlilchi AI • Powered by Gemini',
       title1: 'Unlock the Intelligence in ',
       titleHighlight: 'Every Frame',
       subtitle:
-        'Transform raw video footage into clarity. From corporate meetings to educational content, Quanta extracts the signal from the noise instantly.',
+        'Transform raw video footage into clarity. From corporate meetings to educational content, Tahlilchi AI extracts the signal from the noise instantly.',
       launch: 'Launch Studio',
       seeHow: 'See How It Works',
     },
@@ -141,14 +141,14 @@ const translations: Record<Language, Translations> = {
     },
     about: {
       title: 'About ',
-      highlight: 'Quanta',
+      highlight: 'Tahlilchi AI',
       subtitle: 'Bridging the gap between raw video footage and actionable human intelligence.',
       missionTitle: 'The Mission',
       missionDesc:
-        'We live in a world overflowing with video content. Quanta was built to solve this latency of information. By using multimodal AI, we instantly transform linear video into structured, searchable, and interactive knowledge.',
+        'We live in a world overflowing with video content. Tahlilchi AI was built to solve this latency of information. By using multimodal AI, we instantly transform linear video into structured, searchable, and interactive knowledge.',
       techTitle: 'The Technology',
       techDesc:
-        "Powered by Google's Gemini, Quanta utilizes a massive context window to process video frames and audio tracks simultaneously, allowing it to understand visual context unlike text-only models.",
+        "Powered by Google's Gemini, Tahlilchi AI utilizes a massive context window to process video frames and audio tracks simultaneously, allowing it to understand visual context unlike text-only models.",
       creatorTitle: 'AI Engineering Team',
       creatorRole: 'Multimodal AI Architecture',
       creatorDesc:
@@ -180,11 +180,11 @@ const translations: Record<Language, Translations> = {
       settings: 'Sozlamalar',
     },
     hero: {
-      badge: 'Quanta AI • Gemini texnologiyasida',
+      badge: 'Tahlilchi AI • Gemini texnologiyasida',
       title1: 'Har bir kadrdagi ',
       titleHighlight: 'Aql va Zakovat',
       subtitle:
-        'Xom videoni amaliy tushunchalarga aylantiring. Yig‘ilishlardan tortib darslargacha, Quanta videoni bir zumda tizimli bilimga aylantiradi.',
+        'Xom videoni amaliy tushunchalarga aylantiring. Yig‘ilishlardan tortib darslargacha, Tahlilchi AI videoni bir zumda tizimli bilimga aylantiradi.',
       launch: 'Studiyani Ochish',
       seeHow: 'Qanday Ishlashini Ko‘rish',
     },
@@ -226,14 +226,14 @@ const translations: Record<Language, Translations> = {
     },
     about: {
       title: 'Loyiha ',
-      highlight: 'Haqida',
+      highlight: 'Tahlilchi AI',
       subtitle: 'Xom video ma’lumotlarini inson uchun tushunarli aqlga aylantiramiz.',
       missionTitle: 'Missiya',
       missionDesc:
-        'Biz video kontentga to‘la dunyoda yashayapmiz. Quanta axborotni uzoq kutish kechikishini yo‘q qilish uchun yaratilgan. Multimodal AI yordamida biz videoni bir zumda tizimli bilimga aylantiramiz.',
+        'Biz video kontentga to‘la dunyoda yashayapmiz. Tahlilchi AI axborotni uzoq kutish kechikishini yo‘q qilish uchun yaratilgan. Multimodal AI yordamida biz videoni bir zumda tizimli bilimga aylantiramiz.',
       techTitle: 'Texnologiya',
       techDesc:
-        'Google Gemini tomonidan quvvatlangan Quanta, video kadrlar va audio treklarni bir vaqtning o‘zida qayta ishlash uchun ulkan kontekst oynasidan foydalanadi.',
+        'Google Gemini tomonidan quvvatlangan Tahlilchi AI, video kadrlar va audio treklarni bir vaqtning o‘zida qayta ishlash uchun ulkan kontekst oynasidan foydalanadi.',
       creatorTitle: 'AI Muhandislar Jamoasi',
       creatorRole: 'Multimodal AI Arxitekturasi',
       creatorDesc:
@@ -265,11 +265,11 @@ const translations: Record<Language, Translations> = {
       settings: 'Настройки',
     },
     hero: {
-      badge: 'Quanta AI • На базе Gemini',
+      badge: 'Tahlilchi AI • На базе Gemini',
       title1: 'Интеллект в ',
       titleHighlight: 'Каждом Кадре',
       subtitle:
-        'Превращайте сырое видео в четкие выводы. От корпоративных встреч до обучающих курсов — Quanta мгновенно извлекает суть из шума.',
+        'Превращайте сырое видео в четкие выводы. От корпоративных встреч до обучающих курсов — Tahlilchi AI мгновенно извлекает суть из шума.',
       launch: 'Запустить Студию',
       seeHow: 'Как это работает',
     },
@@ -311,14 +311,14 @@ const translations: Record<Language, Translations> = {
     },
     about: {
       title: 'О проекте ',
-      highlight: 'Quanta',
+      highlight: 'Tahlilchi AI',
       subtitle: 'Превращаем сырые видеоматериалы в структурированные человеческие знания.',
       missionTitle: 'Миссия',
       missionDesc:
-        'Мы живем в мире, перегруженном видеоконтентом. Quanta создана для устранения задержки восприятия информации.',
+        'Мы живем в мире, перегруженном видеоконтентом. Tahlilchi AI создана для устранения задержки восприятия информации.',
       techTitle: 'Технологии',
       techDesc:
-        'Quanta использует возможности модели Google Gemini с контекстным окном до 2 миллионов токенов.',
+        'Tahlilchi AI использует возможности модели Google Gemini с контекстным окном до 2 миллионов токенов.',
       creatorTitle: 'Команда AI инженеров',
       creatorRole: 'Мультимодальная Архитектура',
       creatorDesc: 'Создание инновационных пользовательских интерфейсов для работы с Gemini.',

@@ -86,49 +86,77 @@ export default function AnalyzerPage() {
   const [activeTab, setActiveTab] = useState<'analysis' | 'chat'>('analysis');
   const [hasApiKey, setHasApiKey] = useState(true);
 
-  // Mode definitions
+  // Mode definitions with distinctive colors and badges
   const modes = [
     {
       id: 'meeting' as AnalysisMode,
       name: t.analyzer.modes.meeting.name,
       desc: t.analyzer.modes.meeting.desc,
       icon: Briefcase,
+      color: 'from-blue-500 to-cyan-500',
+      activeBorder: 'border-blue-500 shadow-blue-500/20',
+      activeBg: 'bg-blue-600/15',
+      badge: 'Biznes',
     },
     {
       id: 'news' as AnalysisMode,
       name: t.analyzer.modes.news.name,
       desc: t.analyzer.modes.news.desc,
       icon: Newspaper,
+      color: 'from-rose-500 to-amber-500',
+      activeBorder: 'border-rose-500 shadow-rose-500/20',
+      activeBg: 'bg-rose-600/15',
+      badge: 'Faktlar',
     },
     {
       id: 'education' as AnalysisMode,
       name: t.analyzer.modes.education.name,
       desc: t.analyzer.modes.education.desc,
       icon: GraduationCap,
+      color: 'from-emerald-500 to-teal-400',
+      activeBorder: 'border-emerald-500 shadow-emerald-500/20',
+      activeBg: 'bg-emerald-600/15',
+      badge: 'Test & Quiz',
     },
     {
       id: 'child' as AnalysisMode,
       name: t.analyzer.modes.child.name,
       desc: t.analyzer.modes.child.desc,
       icon: Smile,
+      color: 'from-amber-500 to-orange-400',
+      activeBorder: 'border-amber-500 shadow-amber-500/20',
+      activeBg: 'bg-amber-600/15',
+      badge: '1-16 Yosh',
     },
     {
       id: 'interview' as AnalysisMode,
       name: t.analyzer.modes.interview.name,
       desc: t.analyzer.modes.interview.desc,
       icon: Users,
+      color: 'from-indigo-500 to-purple-500',
+      activeBorder: 'border-indigo-500 shadow-indigo-500/20',
+      activeBg: 'bg-indigo-600/15',
+      badge: 'HR Baho',
     },
     {
       id: 'pitch' as AnalysisMode,
       name: t.analyzer.modes.pitch.name,
       desc: t.analyzer.modes.pitch.desc,
       icon: Mic,
+      color: 'from-purple-500 to-pink-500',
+      activeBorder: 'border-purple-500 shadow-purple-500/20',
+      activeBg: 'bg-purple-600/15',
+      badge: '3V Nutq',
     },
     {
       id: 'chat' as AnalysisMode,
       name: t.analyzer.modes.chat.name,
       desc: t.analyzer.modes.chat.desc,
       icon: MessageSquare,
+      color: 'from-cyan-500 to-blue-500',
+      activeBorder: 'border-cyan-500 shadow-cyan-500/20',
+      activeBg: 'bg-cyan-600/15',
+      badge: 'Video Chat',
     },
   ];
 
@@ -330,8 +358,8 @@ export default function AnalyzerPage() {
         </div>
       )}
 
-      {/* Main Studio Container Card (Screenshots 3 & 4) */}
-      <div className="bg-[#0f172a] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl mb-8">
+      {/* Main Studio Container Card with Rich Gradient & Backdrop Blur */}
+      <div className="bg-gradient-to-b from-[#0e172a]/95 via-[#0b1222]/95 to-[#080d1a]/95 border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] backdrop-blur-xl mb-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* ================= LEFT COLUMN: MEDIA INPUT & PLAYER ================= */}
           <div className="lg:col-span-7 flex flex-col justify-between">
@@ -547,7 +575,7 @@ export default function AnalyzerPage() {
                 </span>
               </div>
 
-              {/* 7 Vertical Mode Cards (Screenshot 3) */}
+              {/* 7 Vertical Mode Cards with Distinctive Personalities */}
               <div className="space-y-2 mb-5">
                 {modes.map((m) => {
                   const Icon = m.icon;
@@ -556,28 +584,42 @@ export default function AnalyzerPage() {
                     <div
                       key={m.id}
                       onClick={() => setMode(m.id)}
-                      className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center gap-3.5 ${
+                      className={`p-3 rounded-2xl border cursor-pointer transition-all duration-200 flex items-center justify-between gap-3 ${
                         isSelected
-                          ? 'bg-blue-600/15 border-blue-500 text-white shadow-lg shadow-blue-500/10'
+                          ? `${m.activeBg} ${m.activeBorder} text-white shadow-lg`
                           : 'bg-[#0a0f1d] border-slate-800/80 hover:border-slate-700 text-slate-300 hover:bg-[#0c1428]'
                       }`}
                     >
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                          isSelected
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+                            isSelected
+                              ? `bg-gradient-to-tr ${m.color} text-white shadow-md`
+                              : 'bg-slate-800/80 text-slate-400'
+                          }`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <h5 className="text-xs font-bold tracking-tight truncate">{m.name}</h5>
+                          <p className="text-[11px] text-slate-400 truncate">{m.desc}</p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h5 className="text-xs font-bold tracking-tight truncate">{m.name}</h5>
-                        <p className="text-[11px] text-slate-400 truncate">{m.desc}</p>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            isSelected
+                              ? 'bg-white/15 text-white border border-white/20'
+                              : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {m.badge}
+                        </span>
+                        {isSelected && (
+                          <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400 shrink-0" />
+                        )}
                       </div>
-                      {isSelected && (
-                        <div className="w-2 h-2 rounded-full bg-blue-400 shadow-sm shrink-0" />
-                      )}
                     </div>
                   );
                 })}
@@ -689,7 +731,7 @@ export default function AnalyzerPage() {
               type="button"
               disabled={loading || !isMediaReady}
               onClick={handleRunAnalysis}
-              className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm tracking-wide shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm tracking-wide shadow-xl shadow-blue-600/30 hover:shadow-cyan-500/40 transition-all flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

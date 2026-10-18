@@ -5,10 +5,10 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Quanta | Intelligence in Every Frame',
+  title: 'Tahlilchi AI | Har bir kadrdagi aql va zakovat',
   description:
-    'Transform raw video footage into clarity. From corporate meetings to educational content, Quanta extracts the signal from the noise instantly.',
-  keywords: ['Quanta AI', 'Video Intelligence', 'Gemini 2.5', 'Gemini 3', 'Multimodal Video AI'],
+    'Video va audio materiallardan amaliy tushunchalar, qarorlar va testlar ajratib oluvchi multimodal sun’iy intellekt platformasi.',
+  keywords: ['Tahlilchi AI', 'Video Intelligence', 'Gemini 2.5', 'Gemini 3', 'Multimodal Video AI', 'Uzbekistan AI'],
 };
 
 export default function RootLayout({
