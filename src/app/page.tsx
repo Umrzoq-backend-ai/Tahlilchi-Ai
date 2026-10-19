@@ -134,6 +134,22 @@ export default function HomePage() {
             {t.hero.seeHow}
           </a>
         </div>
+
+        {/* Trust Badges Bar (No account, 100% free, fast) */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-5 sm:gap-8 text-xs text-slate-400">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="text-slate-300 font-medium">Akkaunt kiritish shart emas</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="text-slate-300 font-medium">100% Bepul & Ochiq</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="text-slate-300 font-medium">To‘liq Transkript & Timestamps</span>
+          </div>
+        </div>
       </section>
 
       {/* 2. Visual Transformation Flow (Step Cards) */}
@@ -148,9 +164,9 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <Zap className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-white mb-2">1. Raw Video & Audio</h3>
+              <h3 className="text-sm font-bold text-white mb-2">1. Video, Audio & PDF</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                YouTube URL, MP4 video yoki audio faylni kiritasiz.
+                YouTube URL, MP4 video, audio yoki PDF hujjatni kiritasiz.
               </p>
             </div>
 
@@ -243,18 +259,36 @@ export default function HomePage() {
           <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-cyan-500/10 blur-[90px] rounded-full pointer-events-none" />
 
           <h2 className="text-2xl sm:text-4xl font-black text-white mb-4 relative z-10 tracking-tight">
-            Birinchi videongizni tahlil qilishga tayyormisiz?
+            Ixtiyoriy videoni darhol tahlil qilishga tayyormisiz?
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto mb-8 relative z-10 leading-relaxed">
-            Ro‘yxatdan o‘tish talab qilinmaydi. O‘z Gemini API kalitingiz bilan darhol ishga tushiring.
+            Akkaunt ochish yoki karta kiritish talab qilinmaydi! Havolani joylang yoki faylni yuklang — soniyalar ichida to‘liq tahlil va transkriptga ega bo‘ling.
           </p>
-          <Link
-            href="/analyzer"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-sm bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-xl shadow-blue-500/30 hover:shadow-cyan-500/40 transition-all relative z-10"
-          >
-            <span>Studiyani Ochish</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          <div className="flex flex-col items-center gap-4 relative z-10">
+            <Link
+              href="/analyzer"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-sm bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-xl shadow-blue-500/30 hover:shadow-cyan-500/40 transition-all cursor-pointer"
+            >
+              <span>Studiyani Bepul Ochish</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                Ro‘yxatdan o‘tishsiz
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                100% Bepul va xavfsiz
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                Daqiqalik natija
+              </span>
+            </div>
+          </div>
         </div>
       </section>
     </div>

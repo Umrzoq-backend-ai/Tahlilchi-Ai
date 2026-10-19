@@ -5,10 +5,27 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Tahlilchi AI | Har bir kadrdagi aql va zakovat',
+  title: 'Tahlilchi AI — Video, Ovoz va PDF Tahlili | Ro‘yxatdan o‘tishsiz',
   description:
-    'Video va audio materiallardan amaliy tushunchalar, qarorlar va testlar ajratib oluvchi multimodal sun’iy intellekt platformasi.',
-  keywords: ['Tahlilchi AI', 'Video Intelligence', 'Gemini 2.5', 'Gemini 3', 'Multimodal Video AI', 'Uzbekistan AI'],
+    'Soatlab videolarni ko‘rish shart emas! Istalgan YouTube video, audio yozuv yoki PDF hujjatdan bir zumda eng muhim xulosalar, daqiqama-daqiqa vaqt belgilari (timestamps) va to‘liq o‘zbekcha transkriptni oling. Akkaunt talab qilinmaydi.',
+  keywords: [
+    'Tahlilchi AI',
+    'Video Tahlil',
+    'YouTube Tahlili',
+    'Audio Transkript',
+    'Ovozni matnga aylantirish',
+    'PDF Tahlili',
+    'Gemini AI Uzbekistan',
+    'Suniy intellekt',
+    'Video konspekt',
+  ],
+  openGraph: {
+    title: 'Tahlilchi AI — Video, Ovoz va PDF Tahlili (Ro‘yxatdan o‘tishsiz)',
+    description:
+      'YouTube video, audio va PDF hujjatlardan 1 soniyada xulosa va to‘liq transkript oling. Akkaunt ochish shart emas.',
+    siteName: 'Tahlilchi AI',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({

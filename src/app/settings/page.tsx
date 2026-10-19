@@ -249,27 +249,59 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* 3. BILLING DISCLAIMER (Screenshot 8 amber box) */}
-        <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 flex items-start gap-3.5">
-          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-          <div>
-            <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wide mb-1">
-              {t.settings.billingTitle}
-            </h4>
-            <p className="text-xs text-amber-200/80 leading-relaxed">{t.settings.billingDesc}</p>
+        {/* 3. FREE TIER & STORAGE INFO (Replaced confusing amber billing with emerald access box) */}
+        <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-200/90 flex items-start gap-3.5 shadow-lg shadow-emerald-950/20">
+          <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wide">
+                {t.settings.billingTitle}
+              </h4>
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                100% Free
+              </span>
+            </div>
+            <p className="text-xs text-emerald-200/80 leading-relaxed">{t.settings.billingDesc}</p>
           </div>
         </div>
 
-        {/* 4. ACTIONS */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={handleSave}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-sm shadow-xl shadow-blue-600/30 hover:shadow-cyan-500/40 transition-all flex items-center justify-center gap-2"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>{t.settings.save}</span>
-          </button>
+        {/* 4. ACTIONS & REAL-TIME SAVE FEEDBACK */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 min-h-[24px]">
+            {saved && (
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>✓ {t.settings.saved}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {saved && (
+              <Link
+                href="/analyzer"
+                className="flex-1 sm:flex-initial px-5 py-3.5 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg animate-fadeIn"
+              >
+                <span>Studiyaga O‘tish</span>
+                <span>&rarr;</span>
+              </Link>
+            )}
+
+            <button
+              type="button"
+              onClick={handleSave}
+              className={`flex-1 sm:flex-initial px-8 py-3.5 rounded-2xl font-bold text-sm shadow-xl transition-all duration-300 flex items-center justify-center gap-2 ${
+                saved
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/40 scale-[1.02]'
+                  : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-blue-600/30 hover:shadow-cyan-500/40'
+              }`}
+            >
+              <CheckCircle2 className={`w-4 h-4 ${saved ? 'text-white animate-bounce' : 'text-blue-200'}`} />
+              <span>{saved ? t.settings.saved : t.settings.save}</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

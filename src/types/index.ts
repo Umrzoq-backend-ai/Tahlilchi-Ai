@@ -7,6 +7,7 @@ export type AnalysisMode =
   | 'pitch'
   | 'audio'
   | 'chat'
+  | 'document'
   | 'multi';
 
 export type OutputLanguage =
@@ -140,6 +141,11 @@ export interface AnalysisResponse {
 
   // Audio Diarization
   audio_timeline?: AudioTimelineItem[];
+
+  // Document & PDF
+  document_title?: string;
+  key_theses?: string[];
+  findings?: { title: string; detail: string; page?: string }[];
 
   // Global & Technical
   transcript?: string;

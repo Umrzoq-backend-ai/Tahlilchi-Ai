@@ -26,6 +26,7 @@ export const DISCLAIMERS: Record<AnalysisMode, string> = {
   interview: 'Nomzodning moslik bali (Match Score) va xulosalar faqat ichki maslahat uchun bo\'lib, avtomatik ishga qabul qilish yoki rad etish qarori emas.',
   pitch: 'Vizual va notiqlik tahlili standart 1 FPS video namuna olishga asoslangan. Tezkor mikromimikalar qamrab olinmagan bo\'lishi mumkin.',
   audio: 'Spikerlar va hissiyotlar audio trekning spektral va intonatsion xususiyatlari asosida aniqlangan.',
+  document: 'PDF va hujjat tahlili hujjat matni va tuzilmasi asosida AI tomonidan shakllantirilgan xulosalardir.',
   multi: 'Ko\'p tilli sintez multimodal tarjima va tahlil asosida shakllantirildi.',
   chat: 'Javoblar videoning umumiy kontekstiga asoslanadi.',
 };
@@ -51,6 +52,16 @@ Barcha natijaviy matnlar, sarlavhalar va tushuntirishlarni mutlaqo ${langName}da
 MUHIM: Javobingiz FAQAT valid JSON obyekt bo'lishi shart. Hech qanday boshqa matn, markdown kod bloki yoki izohlarsiz, to'g'ridan-to'g'ri valid JSON qaytaring.
 Har bir rejimda videodagi muhim joylarga vaqt belgilarini (timestamps) '02:15' yoki '01:20:45' formatida aniq ko'rsating.
 ${options?.customPrompt ? `Foydalanuvchining maxsus talabi: ${options.customPrompt}` : ''}
+
+QAT'IY TALABLAR:
+1. "summary" maydonida 3-4 qator qisqa matn emas, balki videoda ko'rsatilgan BARCHA mavzular, platforma funksiyalari, ko'rsatilgan kodlar va amallarni qamrab oluvchi KENG QAMROVLI, CHUQUR va MUKAMMAL tahlil yozing (kamida 3-4 ta to'liq abzas).
+2. "audio_timeline" maydonida videoda gapirilgan BARCHA gaplarni vaqt tartibida ketma-ket, to'liq transkript qiling:
+   - "start" va "end": vaqt oralig'i (masalan: "00:00", "00:45")
+   - "speaker": gapiruvchi shaxs/rol
+   - "emotion": "Neutral" / "Happy" / "Serious"
+   - "text": videoda gapirilgan haqiqiy gap (asl tilida, masalan ruscha, inglizcha yoki o'zbekcha)
+   - "translation": ushbu gapning ${langName}dagi to'liq, ravon va tushunarli tarjimasi
+   Butun video davomiyligi bo'ylab kamida 15-30 ta xronologik segment qaytaring!
 `;
 
   switch (mode) {
@@ -59,7 +70,8 @@ ${options?.customPrompt ? `Foydalanuvchining maxsus talabi: ${options.customProm
 Siz professional uchrashuv va korporativ boshqaruv tahlilchisisiz.
 Quyidagi JSON struktura bo'yicha javob bering:
 {
-  "summary": "Uchrashuvning 2-3 jumlali siqiq mazmuni",
+  "headline": "Uchrashuvning asosiy mavzusi",
+  "summary": "Uchrashuvning to'liq va keng qamrovli tahliliy xulosasi (kamida 3 ta to'liq abzas)",
   "agenda": "Kun tartibi va muhokama qilingan masalalar ketma-ketligi",
   "speakers": [
     {"id": "Spiker 1 (Taxminiy ismi/roli)", "talk_time_pct": 50}
@@ -72,6 +84,16 @@ Quyidagi JSON struktura bo'yicha javob bering:
   ],
   "open_questions": [
     "Yechimi topilmagan yoki muhokamada ochiq qolgan savol"
+  ],
+  "audio_timeline": [
+    {
+      "start": "00:00",
+      "end": "00:45",
+      "speaker": "Spiker 1",
+      "emotion": "Neutral",
+      "text": "Videoda gapirilgan gap (asl tilda)",
+      "translation": "O'zbek tilidagi to'liq tarjimasi"
+    }
   ],
   ${options?.enableTranscript ? '"key_transcripts": [{"time": "02:15", "text": "muhim iqtibos"}],' : '"key_transcripts": [],'}
   "timestamps": [
@@ -99,6 +121,16 @@ Quyidagi JSON formatda javob bering:
       "timestamp_hint": "08:30"
     }
   ],
+  "audio_timeline": [
+    {
+      "start": "00:00",
+      "end": "00:45",
+      "speaker": "O'qituvchi",
+      "emotion": "Neutral",
+      "text": "Darsda aytilgan gap (asl tilda)",
+      "translation": "O'zbek tilidagi to'liq tarjimasi"
+    }
+  ],
   "timestamps": [
     {"time": "00:00", "text": "Mavzuga kirish"}
   ]
@@ -118,6 +150,16 @@ Quyidagi JSON formatda javob bering:
   ],
   "positive_themes": ["Do'stlik", "O'zaro yordam", "Ilmga qiziqish"],
   "parental_advice": "Ota-onalar uchun ushbu video bo'yicha aniq xulosa va tavsiyalar",
+  "audio_timeline": [
+    {
+      "start": "00:00",
+      "end": "00:45",
+      "speaker": "Personaj / Boshlovchi",
+      "emotion": "Happy",
+      "text": "Videoda aytilgan gap (asl tilda)",
+      "translation": "O'zbek tilidagi to'liq tarjimasi"
+    }
+  ],
   "timestamps": [
     {"time": "00:00", "text": "Boshlanishi"}
   ]
@@ -141,6 +183,16 @@ Quyidagi JSON formatda javob bering:
   ],
   "interviewer_advice": "Intervyu oluvchi uchun maslahat: keyingi bosqichda aynan qaysi mavzularni chuqurroq tekshirish kerak",
   "candidate_advice": "Nomzod o'z ustida ishlashi uchun amaliy tavsiyalar",
+  "audio_timeline": [
+    {
+      "start": "00:00",
+      "end": "00:45",
+      "speaker": "Spiker 1",
+      "emotion": "Neutral",
+      "text": "Suhbatdagi gap (asl tilda)",
+      "translation": "O'zbek tilidagi to'liq tarjimasi"
+    }
+  ],
   "timestamps": [
     {"time": "00:00", "text": "Suhbat boshlanishi"}
   ]
@@ -152,7 +204,7 @@ Siz ommaviy nutq va taqdimotlar bo'yicha professional spiker-murabbiysiz.
 Nutqni 3V qoidasi (Verbal - so'zlar, Visual - tana tili, Vocal - ovoz) bo'yicha baholang.
 Quyidagi JSON formatda javob bering:
 {
-  "summary": "Taqdimotning umumiy bahosi va notiqning yetkazib bera olish mahorati",
+  "summary": "Taqdimotning umumiy bahosi va notiqning yetkazib bera olish mahorati (kamida 3 ta to'liq abzas)",
   "overall_pitch_score": 80,
   "verbal_score": 85,
   "visual_score": 75,
@@ -162,6 +214,16 @@ Quyidagi JSON formatda javob bering:
     "Nutqdagi pauzalardan unumli foydalanish",
     "Kameraga/auditoriyaga to'g'ri qarash",
     "Xulosa qismida urg'uni kuchaytirish"
+  ],
+  "audio_timeline": [
+    {
+      "start": "00:00",
+      "end": "00:45",
+      "speaker": "Notiq",
+      "emotion": "Neutral",
+      "text": "Taqdimotda aytilgan gap (asl tilda)",
+      "translation": "O'zbek tilidagi to'liq tarjimasi"
+    }
   ],
   "timestamps": [
     {"time": "00:00", "text": "Kirish nutqi"}
@@ -174,12 +236,22 @@ Siz professional fakt-cheker va media tahlilchisisiz.
 Quyidagi JSON formatda javob bering:
 {
   "headline": "Asosiy yangilik sarlavhasi",
-  "summary": "3-4 gapdan iborat xolis xulosa",
+  "summary": "Keng qamrovli, chuqur va xolis tahliliy xulosa (kamida 3 ta to'liq abzas)",
   "sentiment": "Neytral",
   "bias_indicators": ["Bir tomonlama yondashuv yoki emotsional manipulyatsiya belgilari"],
   "key_facts": ["Tasdiqlangan asosiy faktlar"],
   "fact_check": [
     {"claim": "Videoda keltirilgan da'vo", "verdict": "True", "explanation": "Nega bunday baho berilgani", "timestamp": "02:15"}
+  ],
+  "audio_timeline": [
+    {
+      "start": "00:00",
+      "end": "00:45",
+      "speaker": "Boshlovchi",
+      "emotion": "Neutral",
+      "text": "Yangilikda aytilgan gap (asl tilda)",
+      "translation": "O'zbek tilidagi to'liq tarjimasi"
+    }
   ],
   "timestamps": [
     {"time": "00:00", "text": "Yangiliklar blokining boshlanishi"}
@@ -207,14 +279,51 @@ Quyidagi JSON formatda javob bering:
   ]
 }`;
 
+    case 'document':
+      return `${commonRules}
+Siz professional tahlilchi va hujjatlar ekspertisiz. Ushbu yuklangan PDF hujjatni (hisobot, kitob, ilmiy maqola, shartnoma yoki prezentatsiya) sinchkovlik bilan o'rganib, undagi asosiy mohiyatni tizimli qilib bering.
+Quyidagi JSON formatda javob bering:
+{
+  "document_title": "Hujjatning to'liq aniq nomi",
+  "summary": "Hujjatning asosiy mohiyati va maqsadi haqida 3-4 ta eng muhim jumlalardan iborat ravon xulosa",
+  "key_theses": [
+    "Asosiy g'oya yoki tezis 1 (sahifa yoki bo'lim ko'rsatilgan holda)",
+    "Asosiy g'oya yoki tezis 2"
+  ],
+  "findings": [
+    {"title": "Muhim raqam yoki xulosa", "detail": "Batafsil izoh va uning ma'nosi", "page": "1-sahifa"}
+  ],
+  "key_facts": [
+    "Hujjatdagi tasdiqlangan muhim fakt yoki statistika"
+  ],
+  "action_items": [
+    {"task": "Hujjatdan kelib chiqadigan amaliy qadam yoki tavsiya", "assignee": "Tegishli soha", "deadline": "", "timestamp": "Sahifa 3"}
+  ],
+  "timestamps": [
+    {"time": "1-sahifa", "text": "Hujjat muqaddimasi va kirish"},
+    {"time": "Asosiy qism", "text": "Asosiy tahliliy bo'lim"}
+  ]
+}`;
+
     default:
       return `${commonRules}
-Quyidagi JSON formatda umumlashtirilgan xulosa va tahlil bering:
+Quyidagi JSON formatda umumlashtirilgan xulosa, to'liq transkript va tahlil bering:
 {
-  "summary": "To'liq va batafsil xulosa",
-  "agenda": "Mavzular ketma-ketligi",
-  "key_findings": ["Asosiy xulosalar"],
-  "action_items": [{"task": "Vazifa", "assignee": "Mas'ul", "deadline": "", "timestamp": "01:00"}],
+  "headline": "Videoning to'liq va aniq sarlavhasi",
+  "summary": "Videoning har bir asosiy qismi, ko'rsatilgan platforma amallari, tushuntirishlari va xulosalarini to'liq yorituvchi KENG QAMROVLI, CHUQUR va BATAFSIL tahlil (kamida 3-4 ta to'liq abzas)",
+  "agenda": "Mavzular ketma-ketligi va xronologiyasi",
+  "key_findings": ["Asosiy xulosalar va muhim parametrlar"],
+  "action_items": [{"task": "Vazifa yoki amaliy xulosa", "assignee": "Mas'ul", "deadline": "", "timestamp": "01:00"}],
+  "audio_timeline": [
+    {
+      "start": "00:00",
+      "end": "00:30",
+      "speaker": "Spiker 1",
+      "emotion": "Neutral",
+      "text": "Videoda aytilgan to'liq gap (asl tilda: ruscha, inglizcha yoki o'zbekcha)",
+      "translation": "Ushbu gapning o'zbek tilidagi to'liq va ravon tarjimasi"
+    }
+  ],
   "timestamps": [{"time": "00:00", "text": "Boshlanishi"}]
 }`;
   }

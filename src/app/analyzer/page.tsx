@@ -24,6 +24,7 @@ import {
   Layers,
   ArrowRight,
   Sliders,
+  FileText,
 } from 'lucide-react';
 import { AnalysisMode, OutputLanguage, AnalysisResponse } from '@/types';
 import { useLanguage } from '@/context/LanguageContext';
@@ -60,13 +61,14 @@ export default function AnalyzerPage() {
   const playerRef = useRef<VideoPlayerRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
 
   // Media state
-  const [sourceTab, setSourceTab] = useState<'video' | 'youtube' | 'audio'>('video');
+  const [sourceTab, setSourceTab] = useState<'video' | 'youtube' | 'audio' | 'pdf'>('video');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [activeVideoUrl, setActiveVideoUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [mediaType, setMediaType] = useState<'video' | 'audio'>('video');
+  const [mediaType, setMediaType] = useState<'video' | 'audio' | 'pdf'>('video');
 
   // Mode and params
   const [mode, setMode] = useState<AnalysisMode>('meeting');
@@ -78,13 +80,42 @@ export default function AnalyzerPage() {
   const [childAge, setChildAge] = useState(6);
   const [targetRole, setTargetRole] = useState('Full Stack Developer');
   const [seniorityLevel, setSeniorityLevel] = useState('Middle');
+  const [techStack, setTechStack] = useState('General');
 
   // Execution state
   const [loading, setLoading] = useState(false);
+  const [loadingSeconds, setLoadingSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResponse | null>(null);
   const [activeTab, setActiveTab] = useState<'analysis' | 'chat'>('analysis');
   const [hasApiKey, setHasApiKey] = useState(true);
+
+  // Timer for loading animation
+  useEffect(() => {
+    let interval: any;
+    if (loading) {
+      setLoadingSeconds(0);
+      interval = setInterval(() => {
+        setLoadingSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setLoadingSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  const formatSeconds = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const getLoadingStageText = (sec: number) => {
+    if (sec < 5) return "1/3: Kadrlar va audio sun'iy intellekt uchun tayyorlanmoqda...";
+    if (sec < 15) return "2/3: Multimodal Gemini modeliga uzatilmoqda...";
+    if (sec < 35) return "3/3: Sun'iy intellekt video, nutq va voqealarni tahlil qilmoqda...";
+    return "Tizimli xulosalar, fakt-tekshiruv va vaqt belgilari shakllanmoqda...";
+  };
 
   // Mode definitions with distinctive colors and badges
   const modes = [
@@ -158,6 +189,16 @@ export default function AnalyzerPage() {
       activeBg: 'bg-cyan-600/15',
       badge: 'Video Chat',
     },
+    {
+      id: 'document' as AnalysisMode,
+      name: t.analyzer.modes.document.name,
+      desc: t.analyzer.modes.document.desc,
+      icon: FileText,
+      color: 'from-amber-500 to-red-500',
+      activeBorder: 'border-amber-500 shadow-amber-500/20',
+      activeBg: 'bg-amber-600/15',
+      badge: 'PDF / Hujjat',
+    },
   ];
 
   // Check API Key and active stored analysis on mount
@@ -208,10 +249,13 @@ export default function AnalyzerPage() {
     }
   };
 
-  const handleFileSelect = (file: File, type: 'video' | 'audio') => {
+  const handleFileSelect = (file: File, type: 'video' | 'audio' | 'pdf') => {
     setSelectedFile(file);
     setMediaType(type);
     setActiveVideoUrl(null);
+    if (type === 'pdf') {
+      setMode('document');
+    }
   };
 
   const handleLoadYoutube = () => {
@@ -265,7 +309,11 @@ export default function AnalyzerPage() {
 
       if (selectedFile) {
         const formData = new FormData();
+        formData.append('file', selectedFile);
         formData.append('video', selectedFile);
+        formData.append('audio', selectedFile);
+        formData.append('pdf', selectedFile);
+        formData.append('media_type', mediaType);
         formData.append('api_key', apiKey);
         formData.append('model_name', modelName);
         formData.append('mode', mode);
@@ -274,6 +322,7 @@ export default function AnalyzerPage() {
         formData.append('child_age', String(childAge));
         formData.append('target_role', targetRole);
         formData.append('seniority_level', seniorityLevel);
+        formData.append('tech_stack', techStack);
 
         res = await fetch('/api/analyze', {
           method: 'POST',
@@ -404,24 +453,58 @@ export default function AnalyzerPage() {
                   <Music className="w-3.5 h-3.5" />
                   <span>{t.analyzer.tabAudio}</span>
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSourceTab('pdf')}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                    sourceTab === 'pdf'
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{t.analyzer.tabPdf}</span>
+                </button>
               </div>
 
               {/* Player or Input Dropzone */}
               {isMediaReady ? (
                 <div className="space-y-3">
-                  <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-black">
-                    <VideoPlayer
-                      ref={playerRef}
-                      videoUrl={activeVideoUrl}
-                      localFile={selectedFile}
-                      mediaType={mediaType}
-                    />
-                  </div>
+                  {mediaType === 'pdf' ? (
+                    <div className="w-full aspect-video rounded-2xl bg-[#090e1a] border border-amber-500/30 p-6 flex flex-col items-center justify-center text-center shadow-xl relative overflow-hidden">
+                      <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-3 shadow-lg shadow-amber-500/20">
+                        <FileText className="w-8 h-8" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 mb-2">
+                        PDF Hujjat Yuklandi
+                      </span>
+                      <h4 className="text-sm font-bold text-white max-w-sm truncate mb-1">
+                        {selectedFile?.name}
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        {selectedFile ? (selectedFile.size / (1024 * 1024)).toFixed(2) : '0'} MB • Multimodal AI tahliliga tayyor
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="relative rounded-2xl overflow-hidden border border-slate-800 bg-black">
+                      <VideoPlayer
+                        ref={playerRef}
+                        videoUrl={activeVideoUrl}
+                        localFile={selectedFile}
+                        mediaType={mediaType}
+                      />
+                    </div>
+                  )}
 
                   {/* Media Info Strip */}
                   <div className="p-3 bg-[#0a0f1d] rounded-2xl border border-slate-800/80 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 truncate pr-2">
-                      <Film className="w-4 h-4 text-blue-400 shrink-0" />
+                      {mediaType === 'pdf' ? (
+                        <FileText className="w-4 h-4 text-amber-400 shrink-0" />
+                      ) : (
+                        <Film className="w-4 h-4 text-blue-400 shrink-0" />
+                      )}
                       <span className="text-slate-300 truncate font-medium">
                         {selectedFile?.name || activeVideoUrl}
                       </span>
@@ -446,7 +529,7 @@ export default function AnalyzerPage() {
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+                        accept="video/*,.mp4,.webm,.mov,.avi,.mkv,.m4v"
                         className="hidden"
                         onChange={(e) => {
                           if (e.target.files?.[0]) handleFileSelect(e.target.files[0], 'video');
@@ -528,7 +611,7 @@ export default function AnalyzerPage() {
                       <input
                         ref={audioInputRef}
                         type="file"
-                        accept="audio/*"
+                        accept="audio/*,.ogg,.oga,.opus,.mp3,.wav,.m4a,.aac,.flac,.weba"
                         className="hidden"
                         onChange={(e) => {
                           if (e.target.files?.[0]) handleFileSelect(e.target.files[0], 'audio');
@@ -546,6 +629,37 @@ export default function AnalyzerPage() {
                         className="px-6 py-2.5 rounded-xl bg-emerald-600 group-hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition-all"
                       >
                         Select Audio
+                      </button>
+                    </div>
+                  )}
+
+                  {/* TAB 4: PDF UPLOAD */}
+                  {sourceTab === 'pdf' && (
+                    <div
+                      onClick={() => pdfInputRef.current?.click()}
+                      className="border-2 border-dashed border-slate-700/80 hover:border-amber-500/80 rounded-3xl p-8 sm:p-12 text-center bg-[#0a0f1d]/60 hover:bg-[#0a0f1d] cursor-pointer transition-all group flex flex-col items-center justify-center min-h-[300px]"
+                    >
+                      <input
+                        ref={pdfInputRef}
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) handleFileSelect(e.target.files[0], 'pdf');
+                        }}
+                      />
+                      <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4 group-hover:scale-110 transition-transform">
+                        <FileText className="w-7 h-7" />
+                      </div>
+                      <h4 className="text-base font-bold text-white mb-1">
+                        {t.analyzer.dropPdf}
+                      </h4>
+                      <p className="text-xs text-slate-400 mb-5">{t.analyzer.dropSubPdf}</p>
+                      <button
+                        type="button"
+                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 group-hover:from-amber-500 group-hover:to-orange-400 text-white font-bold text-xs shadow-lg shadow-amber-600/20 transition-all"
+                      >
+                        PDF Hujjatni Tanlash
                       </button>
                     </div>
                   )}
@@ -745,6 +859,30 @@ export default function AnalyzerPage() {
                 </>
               )}
             </button>
+
+            {/* Live Progress Card */}
+            {loading && (
+              <div className="mt-4 p-4 rounded-2xl bg-[#0b1329] border border-blue-500/30 text-slate-200 animate-fadeIn shadow-xl">
+                <div className="flex items-center justify-between text-xs mb-2.5">
+                  <span className="flex items-center gap-2 text-cyan-300 font-semibold truncate pr-2">
+                    <Sparkles className="w-4 h-4 animate-spin text-cyan-400 shrink-0" />
+                    <span className="truncate">{getLoadingStageText(loadingSeconds)}</span>
+                  </span>
+                  <span className="font-mono text-cyan-300 bg-cyan-950/80 px-2.5 py-0.5 rounded-full border border-cyan-800 text-[11px] font-bold shrink-0">
+                    ⏱ {formatSeconds(loadingSeconds)}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-slate-800/80 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-cyan-400 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min(96, 12 + loadingSeconds * 2.5)}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-2.5 leading-relaxed">
+                  💡 Katta videolar (100MB+) sun&apos;iy intellekt uchun maxsus tezlashtirilib, bir necha soniyada tahlil qilinadi.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
