@@ -284,7 +284,7 @@ export default function SettingsPage() {
                 href="/analyzer"
                 className="flex-1 sm:flex-initial px-5 py-3.5 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg animate-fadeIn"
               >
-                <span>Studiyaga O‘tish</span>
+                <span>{t.nav.analyzer}</span>
                 <span>&rarr;</span>
               </Link>
             )}

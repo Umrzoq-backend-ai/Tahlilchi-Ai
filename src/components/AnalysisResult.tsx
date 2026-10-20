@@ -28,6 +28,7 @@ import {
   Flame,
 } from 'lucide-react';
 import { AnalysisResponse } from '@/types';
+import { useLanguage } from '@/context/LanguageContext';
 import ContentRepurposer from './ContentRepurposer';
 import VisualTimelineChart from './VisualTimelineChart';
 import SynchronizedTranscript from './SynchronizedTranscript';
@@ -51,6 +52,7 @@ export default function AnalysisResult({
   videoUrl,
   onSeek,
 }: AnalysisResultProps) {
+  const { t, language } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
@@ -63,10 +65,10 @@ export default function AnalysisResult({
           <Sparkles className="w-7 h-7 animate-spin" />
         </div>
         <h3 className="text-base font-bold text-slate-100 mb-1">
-          Multimodal Sun'iy Intellekt materialni o'rganmoqda...
+          {language === 'en' ? 'Multimodal AI is analyzing the material...' : language === 'ru' ? 'Мультимодальный ИИ изучает материалы...' : "Multimodal Sun'iy Intellekt materialni o'rganmoqda..."}
         </h3>
         <p className="text-xs text-slate-400 max-w-md mx-auto">
-          Kadrlar, transkript, audio intonatsiya va hujjat matni tahlil qilinmoqda. Bir necha soniya kuting.
+          {language === 'en' ? 'Frames, transcript, audio intonations, and document text are being evaluated. Please wait a few seconds.' : language === 'ru' ? 'Кадры, транскрипт, интонации аудио и текст документа анализируются. Пожалуйста, подождите несколько секунд.' : "Kadrlar, transkript, audio intonatsiya va hujjat matni tahlil qilinmoqda. Bir necha soniya kuting."}
         </p>
       </div>
     );
@@ -78,7 +80,9 @@ export default function AnalysisResult({
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
           <div>
-            <h4 className="text-sm font-bold text-red-100 mb-1">Tahlilda xatolik yuz berdi</h4>
+            <h4 className="text-sm font-bold text-red-100 mb-1">
+              {language === 'en' ? 'Analysis Error' : language === 'ru' ? 'Ошибка анализа' : 'Tahlilda xatolik yuz berdi'}
+            </h4>
             <p className="text-xs text-red-300/90 leading-relaxed">{error}</p>
           </div>
         </div>
@@ -209,15 +213,15 @@ export default function AnalysisResult({
             <button
               onClick={handleCopy}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
-              title="JSON nusxalash"
+              title="JSON Copy"
             >
               {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'Nusxalandi' : 'Nusxa'}</span>
+              <span>{copied ? (language === 'en' ? 'Copied' : language === 'ru' ? 'Скопировано' : 'Nusxalandi') : (language === 'en' ? 'Copy' : language === 'ru' ? 'Копия' : 'Nusxa')}</span>
             </button>
             <button
               onClick={handleDownloadMarkdown}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
-              title="Markdown formatda yuklab olish"
+              title="Download Markdown"
             >
               <Download className="w-3.5 h-3.5" />
               <span>.MD</span>
@@ -225,7 +229,7 @@ export default function AnalysisResult({
             <button
               onClick={handleDownloadJson}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/40 transition-colors"
-              title="JSON formatda yuklab olish"
+              title="Download JSON"
             >
               <Download className="w-3.5 h-3.5" />
               <span>JSON</span>
@@ -245,7 +249,7 @@ export default function AnalysisResult({
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Tahliliy Dosye</span>
+            <span>{t.analyzer.tabDossier}</span>
           </button>
 
           <button
@@ -258,7 +262,7 @@ export default function AnalysisResult({
             }`}
           >
             <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>Viral Shorts & Reels</span>
+            <span>{t.analyzer.tabViral}</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-300 font-mono border border-rose-500/30">
               AI Klip
             </span>
@@ -274,7 +278,7 @@ export default function AnalysisResult({
             }`}
           >
             <Send className="w-3.5 h-3.5 text-sky-400" />
-            <span>SMM & Biznes Repurposing</span>
+            <span>{t.analyzer.tabRepurpose}</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-400/20 text-sky-300 font-mono">
               Yangi
             </span>
@@ -290,7 +294,7 @@ export default function AnalysisResult({
             }`}
           >
             <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Sinxron Transkript</span>
+            <span>{t.analyzer.tabTranscript}</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-400/20 text-cyan-300 font-mono border border-cyan-400/30">
               Nutq & Tarjima
             </span>
@@ -306,7 +310,7 @@ export default function AnalysisResult({
             }`}
           >
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Vizual Xronologiya</span>
+            <span>{t.analyzer.tabTimeline}</span>
           </button>
 
           <button
@@ -319,7 +323,7 @@ export default function AnalysisResult({
             }`}
           >
             <Share2 className="w-3.5 h-3.5 text-purple-400" />
-            <span>Ulashish & Chop Etish</span>
+            <span>{t.analyzer.tabExport}</span>
           </button>
         </div>
 
@@ -333,8 +337,8 @@ export default function AnalysisResult({
                   <Clock className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Tejalgan Vaqt</span>
-                  <span className="text-xs font-black text-white">~95% Vaqt Tejaldi</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">{t.analyzer.timeSaved}</span>
+                  <span className="text-xs font-black text-white">{language === 'en' ? '~95% Time Saved' : language === 'ru' ? '~95% времени сэкономлено' : '~95% Vaqt Tejaldi'}</span>
                 </div>
               </div>
 
@@ -344,8 +348,8 @@ export default function AnalysisResult({
                     <Flame className="w-4 h-4 animate-pulse" />
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Viral Lahzalar</span>
-                    <span className="text-xs font-black text-amber-300">Shorts / Reels Tayyor</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">{language === 'en' ? 'Viral Moments' : language === 'ru' ? 'Вирусные моменты' : 'Viral Lahzalar'}</span>
+                    <span className="text-xs font-black text-amber-300">{language === 'en' ? 'Shorts / Reels Ready' : language === 'ru' ? 'Shorts / Reels готовы' : 'Shorts / Reels Tayyor'}</span>
                   </div>
                 </div>
                 <button
@@ -353,7 +357,7 @@ export default function AnalysisResult({
                   onClick={() => setActiveWorkspaceView('viral')}
                   className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all shrink-0 cursor-pointer"
                 >
-                  Ko'rish &rarr;
+                  {language === 'en' ? 'View →' : language === 'ru' ? 'Смотреть →' : "Ko'rish →"}
                 </button>
               </div>
 
@@ -372,7 +376,7 @@ export default function AnalysisResult({
                   onClick={() => setActiveWorkspaceView('repurpose')}
                   className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 transition-all shrink-0 cursor-pointer"
                 >
-                  Ochish &rarr;
+                  {language === 'en' ? 'Open →' : language === 'ru' ? 'Открыть →' : 'Ochish →'}
                 </button>
               </div>
             </div>
@@ -381,7 +385,7 @@ export default function AnalysisResult({
             <div className="space-y-2">
               <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <span>📝</span>
-                <span>Umumiy Xulosa va Asosiy Mazmun</span>
+                <span>{t.analyzer.summaryTitle}</span>
               </h4>
               <div className="border-l-2 border-blue-500/80 pl-4 py-1">
                 <p className="text-sm text-slate-100 leading-relaxed whitespace-pre-line font-medium">
@@ -950,7 +954,7 @@ export default function AnalysisResult({
         <div className="glass-card rounded-3xl p-5 border border-slate-800 bg-[#0a101f]/90 space-y-3">
           <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
             <Clock className="w-4 h-4 text-blue-400" />
-            <span>Videodagi Vaqt Belgilari (Bir bosishda o'ting)</span>
+            <span>{t.analyzer.timestampsTitle}</span>
           </h4>
           <div className="flex flex-wrap gap-2">
             {result.timestamps.map((t, idx) => (

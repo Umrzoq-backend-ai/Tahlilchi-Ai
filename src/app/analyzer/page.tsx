@@ -111,10 +111,10 @@ export default function AnalyzerPage() {
   };
 
   const getLoadingStageText = (sec: number) => {
-    if (sec < 5) return "1/3: Kadrlar va audio sun'iy intellekt uchun tayyorlanmoqda...";
-    if (sec < 15) return "2/3: Multimodal Gemini modeliga uzatilmoqda...";
-    if (sec < 35) return "3/3: Sun'iy intellekt video, nutq va voqealarni tahlil qilmoqda...";
-    return "Tizimli xulosalar, fakt-tekshiruv va vaqt belgilari shakllanmoqda...";
+    if (sec < 5) return t.analyzer.loading1;
+    if (sec < 15) return t.analyzer.loading2;
+    if (sec < 35) return t.analyzer.loading3;
+    return t.analyzer.loading4;
   };
 
   // Mode definitions with distinctive colors and badges
@@ -127,7 +127,7 @@ export default function AnalyzerPage() {
       color: 'from-blue-500 to-cyan-500',
       activeBorder: 'border-blue-500 shadow-blue-500/20',
       activeBg: 'bg-blue-600/15',
-      badge: 'Biznes',
+      badge: t.analyzer.modes.meeting.badge,
     },
     {
       id: 'news' as AnalysisMode,
@@ -137,7 +137,7 @@ export default function AnalyzerPage() {
       color: 'from-rose-500 to-amber-500',
       activeBorder: 'border-rose-500 shadow-rose-500/20',
       activeBg: 'bg-rose-600/15',
-      badge: 'Faktlar',
+      badge: t.analyzer.modes.news.badge,
     },
     {
       id: 'education' as AnalysisMode,
@@ -147,7 +147,7 @@ export default function AnalyzerPage() {
       color: 'from-emerald-500 to-teal-400',
       activeBorder: 'border-emerald-500 shadow-emerald-500/20',
       activeBg: 'bg-emerald-600/15',
-      badge: 'Test & Quiz',
+      badge: t.analyzer.modes.education.badge,
     },
     {
       id: 'child' as AnalysisMode,
@@ -157,7 +157,7 @@ export default function AnalyzerPage() {
       color: 'from-amber-500 to-orange-400',
       activeBorder: 'border-amber-500 shadow-amber-500/20',
       activeBg: 'bg-amber-600/15',
-      badge: '1-16 Yosh',
+      badge: t.analyzer.modes.child.badge,
     },
     {
       id: 'interview' as AnalysisMode,
@@ -167,7 +167,7 @@ export default function AnalyzerPage() {
       color: 'from-indigo-500 to-purple-500',
       activeBorder: 'border-indigo-500 shadow-indigo-500/20',
       activeBg: 'bg-indigo-600/15',
-      badge: 'HR Baho',
+      badge: t.analyzer.modes.interview.badge,
     },
     {
       id: 'pitch' as AnalysisMode,
@@ -177,7 +177,7 @@ export default function AnalyzerPage() {
       color: 'from-purple-500 to-pink-500',
       activeBorder: 'border-purple-500 shadow-purple-500/20',
       activeBg: 'bg-purple-600/15',
-      badge: '3V Nutq',
+      badge: t.analyzer.modes.pitch.badge,
     },
     {
       id: 'chat' as AnalysisMode,
@@ -187,7 +187,7 @@ export default function AnalyzerPage() {
       color: 'from-cyan-500 to-blue-500',
       activeBorder: 'border-cyan-500 shadow-cyan-500/20',
       activeBg: 'bg-cyan-600/15',
-      badge: 'Video Chat',
+      badge: t.analyzer.modes.chat.badge,
     },
     {
       id: 'document' as AnalysisMode,
@@ -197,7 +197,7 @@ export default function AnalyzerPage() {
       color: 'from-amber-500 to-red-500',
       activeBorder: 'border-amber-500 shadow-amber-500/20',
       activeBg: 'bg-amber-600/15',
-      badge: 'PDF / Hujjat',
+      badge: t.analyzer.modes.document.badge,
     },
   ];
 
@@ -514,7 +514,7 @@ export default function AnalyzerPage() {
                       onClick={handleResetMedia}
                       className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-[11px] shrink-0 transition-colors"
                     >
-                      Change Media
+                      {t.analyzer.changeMedia}
                     </button>
                   </div>
                 </div>
@@ -546,7 +546,7 @@ export default function AnalyzerPage() {
                         type="button"
                         className="px-6 py-2.5 rounded-xl bg-blue-600 group-hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/20 transition-all"
                       >
-                        Select Video
+                        {t.analyzer.selectVideo}
                       </button>
                     </div>
                   )}
@@ -557,7 +557,7 @@ export default function AnalyzerPage() {
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
                           <YouTubeIcon className="w-5 h-5 text-red-500" />
-                          <h4 className="text-sm font-bold text-white">YouTube Stream Streamer</h4>
+                          <h4 className="text-sm font-bold text-white">{t.analyzer.youtubeTitle}</h4>
                         </div>
                         <p className="text-xs text-slate-400 leading-relaxed">
                           {t.analyzer.youtubeHelper}
@@ -576,7 +576,7 @@ export default function AnalyzerPage() {
                             onClick={handleLoadYoutube}
                             className="px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/20 shrink-0 transition-all"
                           >
-                            Load Video
+                            {t.analyzer.loadVideo}
                           </button>
                         </div>
                       </div>
@@ -584,7 +584,7 @@ export default function AnalyzerPage() {
                       {/* Quick Sample Videos */}
                       <div className="pt-6 border-t border-slate-800/80">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                          Try Sample Video:
+                          {t.analyzer.trySample}
                         </span>
                         <div className="flex flex-wrap gap-2">
                           {SAMPLE_VIDEOS.map((s, idx) => (
@@ -628,7 +628,7 @@ export default function AnalyzerPage() {
                         type="button"
                         className="px-6 py-2.5 rounded-xl bg-emerald-600 group-hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition-all"
                       >
-                        Select Audio
+                        {t.analyzer.selectAudio}
                       </button>
                     </div>
                   )}
@@ -659,7 +659,7 @@ export default function AnalyzerPage() {
                         type="button"
                         className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 group-hover:from-amber-500 group-hover:to-orange-400 text-white font-bold text-xs shadow-lg shadow-amber-600/20 transition-all"
                       >
-                        PDF Hujjatni Tanlash
+                        {t.analyzer.selectPdf}
                       </button>
                     </div>
                   )}
@@ -685,7 +685,7 @@ export default function AnalyzerPage() {
                   {t.analyzer.modeTitle}
                 </span>
                 <span className="text-[10px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full">
-                  7 Modes Available
+                  {t.analyzer.modesAvailable}
                 </span>
               </div>
 
@@ -743,7 +743,7 @@ export default function AnalyzerPage() {
               {mode === 'child' && (
                 <div className="mb-4 p-4 rounded-2xl bg-[#0a0f1d] border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-300">Target Child Age</span>
+                    <span className="text-xs font-bold text-slate-300">{t.analyzer.targetChildAge}</span>
                     <span className="text-xs font-bold text-amber-400">{childAge} years old</span>
                   </div>
                   <input
@@ -765,7 +765,7 @@ export default function AnalyzerPage() {
               {mode === 'interview' && (
                 <div className="mb-4 p-4 rounded-2xl bg-[#0a0f1d] border border-slate-800 space-y-3">
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">Target Role</label>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">{t.analyzer.targetRoleLabel}</label>
                     <input
                       type="text"
                       value={targetRole}
@@ -775,7 +775,7 @@ export default function AnalyzerPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">Seniority Level</label>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">{t.analyzer.seniorityLabel}</label>
                     <select
                       value={seniorityLevel}
                       onChange={(e) => setSeniorityLevel(e.target.value)}
@@ -879,7 +879,7 @@ export default function AnalyzerPage() {
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2.5 leading-relaxed">
-                  💡 Katta videolar (100MB+) sun&apos;iy intellekt uchun maxsus tezlashtirilib, bir necha soniyada tahlil qilinadi.
+                  {t.analyzer.largeVideoNote}
                 </p>
               </div>
             )}
@@ -902,7 +902,7 @@ export default function AnalyzerPage() {
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>Analysis Report</span>
+                <span>{t.analyzer.reportTab}</span>
               </button>
 
               <button
@@ -914,13 +914,13 @@ export default function AnalyzerPage() {
                 }`}
               >
                 <MessageSquare className="w-3.5 h-3.5" />
-                <span>Interactive Video Chat</span>
+                <span>{t.analyzer.chatTab}</span>
               </button>
             </div>
 
             <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-cyan-400">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span>{(result.tokens?.total_tokens || 0).toLocaleString()} tokens used</span>
+              <span>{(result.tokens?.total_tokens || 0).toLocaleString()} {t.analyzer.tokensUsed}</span>
             </div>
           </div>
 

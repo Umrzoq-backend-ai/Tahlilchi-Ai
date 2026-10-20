@@ -32,7 +32,7 @@ export default function Footer() {
             </p>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-bold text-emerald-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Tizim barqaror ishlamoqda (Online)</span>
+              <span>{t.footer.statusOnline}</span>
             </div>
           </div>
 
@@ -78,27 +78,27 @@ export default function Footer() {
             <ul className="space-y-2 text-slate-400">
               <li>
                 <Link href="/analyzer?mode=meeting" className="hover:text-cyan-400 transition-colors">
-                  Uchrashuv bayonnomasi
+                  {t.analyzer.modes.meeting.name}
                 </Link>
               </li>
               <li>
                 <Link href="/analyzer?mode=education" className="hover:text-cyan-400 transition-colors">
-                  Dars konspekti va Test
+                  {t.analyzer.modes.education.name}
                 </Link>
               </li>
               <li>
                 <Link href="/analyzer?mode=news" className="hover:text-cyan-400 transition-colors">
-                  Fakt-cheking va Xolislik
+                  {t.analyzer.modes.news.name}
                 </Link>
               </li>
               <li>
                 <Link href="/analyzer?mode=pitch" className="hover:text-cyan-400 transition-colors">
-                  3V Notiqlik & Taqdimot
+                  {t.analyzer.modes.pitch.name}
                 </Link>
               </li>
               <li>
                 <Link href="/analyzer?mode=document" className="hover:text-cyan-400 transition-colors">
-                  PDF & Hujjat Tahlili
+                  {t.analyzer.modes.document.name}
                 </Link>
               </li>
             </ul>
@@ -119,7 +119,7 @@ export default function Footer() {
                 <span>{t.footer.security}</span>
               </div>
               <p className="text-[11px] text-slate-500 pt-1 leading-relaxed">
-                Google Gemini 2.5 & 3 Native Multimodal arxitekturasi asosida ishlaydi.
+                {t.footer.geminiArchitecture}
               </p>
             </div>
           </div>

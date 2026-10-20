@@ -144,13 +144,14 @@ export default function HistoryPage() {
               className="bg-[#0a0f1d] border border-slate-700/80 rounded-2xl px-4 py-2.5 text-xs font-semibold text-slate-200 focus:outline-none focus:border-blue-500"
             >
               <option value="all">{t.history.allModes}</option>
-              <option value="meeting">Meeting Recording</option>
-              <option value="news">News Report</option>
-              <option value="education">Educational Content</option>
-              <option value="child">Child Content Review</option>
-              <option value="interview">Interview Analysis</option>
-              <option value="pitch">Pitch Analysis</option>
-              <option value="chat">Video Chat</option>
+              <option value="meeting">{t.analyzer.modes.meeting.name}</option>
+              <option value="news">{t.analyzer.modes.news.name}</option>
+              <option value="education">{t.analyzer.modes.education.name}</option>
+              <option value="child">{t.analyzer.modes.child.name}</option>
+              <option value="interview">{t.analyzer.modes.interview.name}</option>
+              <option value="pitch">{t.analyzer.modes.pitch.name}</option>
+              <option value="chat">{t.analyzer.modes.chat.name}</option>
+              <option value="document">{t.analyzer.modes.document.name}</option>
             </select>
 
             {/* Download JSON Button */}

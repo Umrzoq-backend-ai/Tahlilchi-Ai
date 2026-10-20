@@ -12,6 +12,7 @@ import {
   Users,
   Mic,
   MessageSquare,
+  FileText,
   ShieldCheck,
   Zap,
   Cpu,
@@ -26,67 +27,76 @@ export default function HomePage() {
 
   const featureCards = [
     {
-      mode: 'meeting',
+      mode: 'meeting' as const,
       name: t.analyzer.modes.meeting.name,
       desc: t.analyzer.modes.meeting.desc,
       icon: Briefcase,
       color: 'from-blue-500 to-cyan-500',
       bgGlow: 'hover:border-blue-500/50 hover:shadow-blue-500/10',
-      badge: 'Biznes & Spikerlar',
+      badge: t.analyzer.modes.meeting.badge,
     },
     {
-      mode: 'news',
+      mode: 'news' as const,
       name: t.analyzer.modes.news.name,
       desc: t.analyzer.modes.news.desc,
       icon: Newspaper,
       color: 'from-rose-500 to-amber-500',
       bgGlow: 'hover:border-rose-500/50 hover:shadow-rose-500/10',
-      badge: 'Fakt & Xolislik',
+      badge: t.analyzer.modes.news.badge,
     },
     {
-      mode: 'education',
+      mode: 'education' as const,
       name: t.analyzer.modes.education.name,
       desc: t.analyzer.modes.education.desc,
       icon: GraduationCap,
       color: 'from-emerald-500 to-teal-400',
       bgGlow: 'hover:border-emerald-500/50 hover:shadow-emerald-500/10',
-      badge: 'Interaktiv Test',
+      badge: t.analyzer.modes.education.badge,
     },
     {
-      mode: 'child',
+      mode: 'child' as const,
       name: t.analyzer.modes.child.name,
       desc: t.analyzer.modes.child.desc,
       icon: Smile,
       color: 'from-amber-500 to-orange-400',
       bgGlow: 'hover:border-amber-500/50 hover:shadow-amber-500/10',
-      badge: '1-16 Yosh Filtr',
+      badge: t.analyzer.modes.child.badge,
     },
     {
-      mode: 'interview',
+      mode: 'interview' as const,
       name: t.analyzer.modes.interview.name,
       desc: t.analyzer.modes.interview.desc,
       icon: Users,
       color: 'from-indigo-500 to-purple-500',
       bgGlow: 'hover:border-indigo-500/50 hover:shadow-indigo-500/10',
-      badge: 'HR Scorecard',
+      badge: t.analyzer.modes.interview.badge,
     },
     {
-      mode: 'pitch',
+      mode: 'pitch' as const,
       name: t.analyzer.modes.pitch.name,
       desc: t.analyzer.modes.pitch.desc,
       icon: Mic,
       color: 'from-purple-500 to-pink-500',
       bgGlow: 'hover:border-purple-500/50 hover:shadow-purple-500/10',
-      badge: '3V Framework',
+      badge: t.analyzer.modes.pitch.badge,
     },
     {
-      mode: 'chat',
+      mode: 'chat' as const,
       name: t.analyzer.modes.chat.name,
       desc: t.analyzer.modes.chat.desc,
       icon: MessageSquare,
       color: 'from-cyan-500 to-blue-500',
       bgGlow: 'hover:border-cyan-500/50 hover:shadow-cyan-500/10',
-      badge: 'Jonli Savol-Javob',
+      badge: t.analyzer.modes.chat.badge,
+    },
+    {
+      mode: 'document' as const,
+      name: t.analyzer.modes.document.name,
+      desc: t.analyzer.modes.document.desc,
+      icon: FileText,
+      color: 'from-amber-500 to-red-500',
+      bgGlow: 'hover:border-amber-500/50 hover:shadow-amber-500/10',
+      badge: t.analyzer.modes.document.badge,
     },
   ];
 
@@ -139,15 +149,15 @@ export default function HomePage() {
         <div className="mt-8 flex flex-wrap items-center justify-center gap-5 sm:gap-8 text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-slate-300 font-medium">Akkaunt kiritish shart emas</span>
+            <span className="text-slate-300 font-medium">{t.hero.trustNoAccount}</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-slate-300 font-medium">100% Bepul & Ochiq</span>
+            <span className="text-slate-300 font-medium">{t.hero.trustFree}</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-slate-300 font-medium">To‘liq Transkript & Timestamps</span>
+            <span className="text-slate-300 font-medium">{t.hero.trustTranscript}</span>
           </div>
         </div>
       </section>
@@ -164,9 +174,9 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <Zap className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-white mb-2">1. Video, Audio & PDF</h3>
+              <h3 className="text-sm font-bold text-white mb-2">{t.home.step1Title}</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                YouTube URL, MP4 video, audio yoki PDF hujjatni kiritasiz.
+                {t.home.step1Desc}
               </p>
             </div>
 
@@ -178,9 +188,9 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <Cpu className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-white mb-2">2. Native Multimodal AI</h3>
+              <h3 className="text-sm font-bold text-white mb-2">{t.home.step2Title}</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Gemini video kadrlar, audiotrek va slaydlarni bir vaqtda tushunadi.
+                {t.home.step2Desc}
               </p>
             </div>
 
@@ -192,30 +202,30 @@ export default function HomePage() {
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-white mb-2">3. Actionable Intelligence</h3>
+              <h3 className="text-sm font-bold text-white mb-2">{t.home.step3Title}</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Qarorlar, interaktiv test, 3V tahlil va suhbatdosh Video Chat.
+                {t.home.step3Desc}
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. Features Section (7 Specialized Modes with Distinctive Accents) */}
+      {/* 3. Features Section (Specialized Modes) */}
       <section id="features" className="py-20 px-4 sm:px-8 max-w-7xl mx-auto w-full">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[11px] font-bold text-blue-400 mb-3 uppercase tracking-wider">
-            Ixtisoslashgan Yo'nalishlar
+            {t.home.featuresBadge}
           </div>
           <h2 className="text-2xl sm:text-4xl font-extrabold text-white mb-3 tracking-tight">
-            7 xil ixtisoslashgan tahlil rejimlari
+            {t.home.featuresTitle}
           </h2>
           <p className="text-xs sm:text-sm text-slate-400">
-            Har bir soha uchun maxsus tuzilgan JSON structured output schemalari va AI modellari.
+            {t.home.featuresDesc}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {featureCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -243,7 +253,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs font-semibold text-blue-400 group-hover:text-cyan-300 transition-colors">
-                  <span>Rejimni ochish</span>
+                  <span>{t.home.openMode}</span>
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </div>
               </Link>
@@ -259,33 +269,33 @@ export default function HomePage() {
           <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-cyan-500/10 blur-[90px] rounded-full pointer-events-none" />
 
           <h2 className="text-2xl sm:text-4xl font-black text-white mb-4 relative z-10 tracking-tight">
-            Ixtiyoriy videoni darhol tahlil qilishga tayyormisiz?
+            {t.home.ctaTitle}
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto mb-8 relative z-10 leading-relaxed">
-            Akkaunt ochish yoki karta kiritish talab qilinmaydi! Havolani joylang yoki faylni yuklang — soniyalar ichida to‘liq tahlil va transkriptga ega bo‘ling.
+            {t.home.ctaDesc}
           </p>
           <div className="flex flex-col items-center gap-4 relative z-10">
             <Link
               href="/analyzer"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-sm bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-xl shadow-blue-500/30 hover:shadow-cyan-500/40 transition-all cursor-pointer"
             >
-              <span>Studiyani Bepul Ochish</span>
+              <span>{t.home.ctaBtn}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
             <div className="flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-400">
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Ro‘yxatdan o‘tishsiz
+                {t.home.ctaTrust1}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                100% Bepul va xavfsiz
+                {t.home.ctaTrust2}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                Daqiqalik natija
+                {t.home.ctaTrust3}
               </span>
             </div>
           </div>

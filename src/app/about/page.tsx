@@ -139,7 +139,7 @@ export default function AboutPage() {
           href="/analyzer"
           className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-sm shadow-xl shadow-blue-600/30 hover:shadow-cyan-500/40 transition-all"
         >
-          <span>Launch Analyzer Studio</span>
+          <span>{t.hero.launch}</span>
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
