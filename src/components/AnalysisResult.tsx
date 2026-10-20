@@ -25,12 +25,14 @@ import {
   Printer,
   Volume2,
   Play,
+  Flame,
 } from 'lucide-react';
 import { AnalysisResponse } from '@/types';
 import ContentRepurposer from './ContentRepurposer';
 import VisualTimelineChart from './VisualTimelineChart';
 import SynchronizedTranscript from './SynchronizedTranscript';
 import ShareExportModal from './ShareExportModal';
+import ViralClipsExtractor from './ViralClipsExtractor';
 
 interface AnalysisResultProps {
   result: AnalysisResponse | null;
@@ -40,7 +42,7 @@ interface AnalysisResultProps {
   onSeek?: (timeStr: string) => void;
 }
 
-type WorkspaceView = 'dossier' | 'repurpose' | 'transcript' | 'timeline' | 'export';
+type WorkspaceView = 'dossier' | 'viral' | 'repurpose' | 'transcript' | 'timeline' | 'export';
 
 export default function AnalysisResult({
   result,
@@ -248,6 +250,22 @@ export default function AnalysisResult({
 
           <button
             type="button"
+            onClick={() => setActiveWorkspaceView('viral')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeWorkspaceView === 'viral'
+                ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white shadow-lg shadow-rose-600/30'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            }`}
+          >
+            <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+            <span>Viral Shorts & Reels</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-300 font-mono border border-rose-500/30">
+              AI Klip
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveWorkspaceView('repurpose')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               activeWorkspaceView === 'repurpose'
@@ -308,6 +326,57 @@ export default function AnalysisResult({
         {/* ================= VIEW 1: MASTER DOSSIER (DEFAULT) ================= */}
         {activeWorkspaceView === 'dossier' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Quick Media & Creator Intelligence KPI Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 via-purple-950/30 to-amber-950/30 border border-slate-800 shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Tejalgan Vaqt</span>
+                  <span className="text-xs font-black text-white">~95% Vaqt Tejaldi</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 sm:border-x sm:border-slate-800 sm:px-3.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                    <Flame className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Viral Lahzalar</span>
+                    <span className="text-xs font-black text-amber-300">Shorts / Reels Tayyor</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveWorkspaceView('viral')}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all shrink-0 cursor-pointer"
+                >
+                  Ko'rish &rarr;
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
+                    <Send className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Telegram & Karusel</span>
+                    <span className="text-xs font-black text-sky-300">1-Click SMM Post</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveWorkspaceView('repurpose')}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 transition-all shrink-0 cursor-pointer"
+                >
+                  Ochish &rarr;
+                </button>
+              </div>
+            </div>
+
             {/* Executive Summary */}
             <div className="space-y-2">
               <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -819,6 +888,17 @@ export default function AnalysisResult({
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ================= VIEW: VIRAL SHORTS & REELS ================= */}
+        {activeWorkspaceView === 'viral' && (
+          <div className="pt-2 animate-in fade-in duration-200">
+            <ViralClipsExtractor
+              result={result}
+              videoUrl={videoUrl}
+              onSeek={onSeek}
+            />
           </div>
         )}
 

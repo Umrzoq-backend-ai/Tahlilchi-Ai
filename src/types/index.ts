@@ -86,6 +86,17 @@ export interface AudioTimelineItem {
   translation?: string;
 }
 
+export interface ViralMoment {
+  start: string;
+  end: string;
+  hook: string;
+  reason: string;
+  quote?: string;
+  viral_score: number;
+  caption?: string;
+  hashtags?: string[];
+}
+
 export interface TokensUsage {
   input_tokens: number;
   output_tokens: number;
@@ -141,6 +152,9 @@ export interface AnalysisResponse {
 
   // Audio Diarization
   audio_timeline?: AudioTimelineItem[];
+
+  // Viral Moments (Shorts / Reels)
+  viral_moments?: ViralMoment[];
 
   // Document & PDF
   document_title?: string;

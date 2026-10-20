@@ -62,6 +62,19 @@ QAT'IY TALABLAR:
    - "text": videoda gapirilgan haqiqiy gap (asl tilida, masalan ruscha, inglizcha yoki o'zbekcha)
    - "translation": ushbu gapning ${langName}dagi to'liq, ravon va tushunarli tarjimasi
    Butun video davomiyligi bo'ylab kamida 15-30 ta xronologik segment qaytaring!
+3. "viral_moments" maydonida videoning eng hayajonli, aforizmli yoki shov-shuvli 3-4 ta Shorts/Reels/TikTok lahzasini bering:
+   [
+     {
+       "start": "01:25",
+       "end": "02:10",
+       "hook": "Tomoshabinni darhol to'xtatuvchi kuchli zarba sarlavha",
+       "reason": "Nega aynan bu joy virusli bo'lishi sababi",
+       "quote": "Spiker aytgan eng ta'sirli gap",
+       "viral_score": 96,
+       "caption": "Instagram Reels va YouTube Shorts uchun tayyor tavsif",
+       "hashtags": ["#foydali", "#motivatsiya", "#tahlil"]
+     }
+   ]
 `;
 
   switch (mode) {
