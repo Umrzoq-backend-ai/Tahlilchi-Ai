@@ -100,7 +100,7 @@ export default function Footer() {
                   className="inline-flex items-center gap-2.5 hover:text-cyan-400 transition-colors group"
                 >
                   <TelegramIcon className="w-4 h-4 text-sky-400 group-hover:scale-110 transition-transform" />
-                  <span>Telegram (@zoltanma)</span>
+                  <span>Telegram</span>
                 </a>
               </li>
               <li>
@@ -111,7 +111,7 @@ export default function Footer() {
                   className="inline-flex items-center gap-2.5 hover:text-cyan-400 transition-colors group"
                 >
                   <LinkedInIcon className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
-                  <span>LinkedIn (Umrzoq Yulchiyev)</span>
+                  <span>LinkedIn</span>
                 </a>
               </li>
               <li>
@@ -122,7 +122,7 @@ export default function Footer() {
                   className="inline-flex items-center gap-2.5 hover:text-cyan-400 transition-colors group"
                 >
                   <InstagramIcon className="w-4 h-4 text-pink-400 group-hover:scale-110 transition-transform" />
-                  <span>Instagram (@umrzoq_21)</span>
+                  <span>Instagram</span>
                 </a>
               </li>
               <li>
@@ -133,7 +133,7 @@ export default function Footer() {
                   className="inline-flex items-center gap-2.5 hover:text-cyan-400 transition-colors group"
                 >
                   <Globe className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  <span>Portfolio (umrzoq-yulchiyev.vercel.app)</span>
+                  <span>Portfolio</span>
                 </a>
               </li>
               <li>
