@@ -540,7 +540,7 @@ export default function AnalyzerPage() {
   const isMediaReady = !!activeVideoUrl || !!selectedFile;
 
   return (
-    <div className="flex-1 py-8 px-4 sm:px-8 max-w-7xl mx-auto w-full">
+    <div className="flex-1 py-5 sm:py-8 px-3 sm:px-6 md:px-8 max-w-7xl mx-auto w-full">
       {/* Missing API Key Warning */}
       {!hasApiKey && (
         <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 flex items-center justify-between gap-4">
@@ -564,7 +564,7 @@ export default function AnalyzerPage() {
       )}
 
       {/* Main Studio Container Card with Rich Gradient & Backdrop Blur */}
-      <div className="bg-gradient-to-b from-[#0e172a]/95 via-[#0b1222]/95 to-[#080d1a]/95 border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] backdrop-blur-xl mb-8">
+      <div className="bg-gradient-to-b from-[#0e172a]/95 via-[#0b1222]/95 to-[#080d1a]/95 border border-slate-800/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.7)] backdrop-blur-xl mb-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* ================= LEFT COLUMN: MEDIA INPUT & PLAYER ================= */}
           <div className="lg:col-span-7 flex flex-col justify-between">
