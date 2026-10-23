@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Sparkles, Globe, ExternalLink } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import Logo from '@/components/Logo';
 
 // Custom Brand Icons
 const TelegramIcon = ({ className }: { className?: string }) => (
@@ -38,11 +39,7 @@ export default function Footer() {
           {/* Column 1: Brand & Bio (5 cols) */}
           <div className="md:col-span-5 space-y-3.5">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 p-[1.5px] flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                <div className="w-full h-full bg-[#050813] rounded-[10px] flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
-                </div>
-              </div>
+              <Logo size={30} />
               <span className="font-black text-white text-lg tracking-tight">
                 Tahlilchi <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">AI</span>
               </span>

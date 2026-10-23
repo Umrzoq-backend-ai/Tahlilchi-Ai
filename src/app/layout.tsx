@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://tahlilchi-ai-ruddy.vercel.app'),
   title: 'Tahlilchi AI — Video, Ovoz va PDF Tahlili | Ro‘yxatdan o‘tishsiz',
   description:
     'Soatlab videolarni ko‘rish shart emas! Istalgan YouTube video, audio yozuv yoki PDF hujjatdan bir zumda eng muhim xulosalar, daqiqama-daqiqa vaqt belgilari (timestamps) va to‘liq o‘zbekcha transkriptni oling. Akkaunt talab qilinmaydi.',
@@ -19,12 +20,18 @@ export const metadata: Metadata = {
     'Suniy intellekt',
     'Video konspekt',
   ],
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/favicon.ico',
+    apple: '/icon.png',
+  },
   openGraph: {
     title: 'Tahlilchi AI — Video, Ovoz va PDF Tahlili (Ro‘yxatdan o‘tishsiz)',
     description:
       'YouTube video, audio va PDF hujjatlardan 1 soniyada xulosa va to‘liq transkript oling. Akkaunt ochish shart emas.',
     siteName: 'Tahlilchi AI',
     type: 'website',
+    images: [{ url: '/icon.png', width: 512, height: 512, alt: 'Tahlilchi AI Logo' }],
   },
 };
 

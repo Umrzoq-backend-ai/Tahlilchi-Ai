@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Settings, Globe, ChevronDown, Menu, X, Sparkles, Activity } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import Logo from '@/components/Logo';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -52,13 +53,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-8 h-18 py-3 flex items-center justify-between relative">
         {/* 1. Left: Brand Logo */}
         <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-          <div className="relative w-9 h-9 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-500 to-cyan-400 p-[1.5px] shadow-lg shadow-blue-500/25 group-hover:shadow-cyan-400/40 transition-all duration-300">
-            <div className="w-full h-full bg-[#080d1a] rounded-[14px] flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-cyan-400 group-hover:rotate-12 transition-transform duration-300" />
-            </div>
-            {/* Subtle glow orb */}
-            <div className="absolute inset-0 rounded-2xl bg-cyan-400/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
+          <Logo size={32} />
 
           <div className="flex items-center gap-1.5">
             <span className="text-lg font-black tracking-tight text-white group-hover:text-cyan-300 transition-colors">
