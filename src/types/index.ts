@@ -150,8 +150,9 @@ export interface AnalysisResponse {
   parasite_words?: string[];
   pitch_recommendations?: string[];
 
-  // Audio Diarization
+  // Audio & Music
   audio_timeline?: AudioTimelineItem[];
+  genre?: string;
 
   // Viral Moments (Shorts / Reels)
   viral_moments?: ViralMoment[];

@@ -53,16 +53,20 @@ MUHIM: Javobingiz FAQAT valid JSON obyekt bo'lishi shart. Hech qanday boshqa mat
 Har bir rejimda videodagi muhim joylarga vaqt belgilarini (timestamps) '02:15' yoki '01:20:45' formatida aniq ko'rsating.
 ${options?.customPrompt ? `Foydalanuvchining maxsus talabi: ${options.customPrompt}` : ''}
 
-QAT'IY TALABLAR:
-1. "summary" maydonida 3-4 qator qisqa matn emas, balki videoda ko'rsatilgan BARCHA mavzular, platforma funksiyalari, ko'rsatilgan kodlar va amallarni qamrab oluvchi KENG QAMROVLI, CHUQUR va MUKAMMAL tahlil yozing (kamida 3-4 ta to'liq abzas).
-2. "audio_timeline" maydonida videoda gapirilgan BARCHA gaplarni vaqt tartibida ketma-ket, to'liq transkript qiling:
-   - "start" va "end": vaqt oralig'i (masalan: "00:00", "00:45")
-   - "speaker": gapiruvchi shaxs/rol
-   - "emotion": "Neutral" / "Happy" / "Serious"
-   - "text": videoda gapirilgan haqiqiy gap (asl tilida, masalan ruscha, inglizcha yoki o'zbekcha)
-   - "translation": ushbu gapning ${langName}dagi to'liq, ravon va tushunarli tarjimasi
-   Butun video davomiyligi bo'ylab kamida 15-30 ta xronologik segment qaytaring!
-3. "viral_moments" maydonida videoning eng hayajonli, aforizmli yoki shov-shuvli 3-4 ta Shorts/Reels/TikTok lahzasini bering:
+QAT'IY VA MUHIM TALABLAR:
+1. "audio_timeline" - ENG ASOSIY QISM:
+   Videoda/audioda aytilgan BARCHA gaplarni boshidan oxirigacha (hatto video 1-2 soatlik bo'lsa ham) to'liq xronologik ketma-ketlikda transkript qiling:
+   - "start" va "end": vaqt oralig'i (masalan: "00:00", "01:30", "15:45")
+   - "speaker": gapiruvchi shaxs/rol (masalan: "Boshlovchi", "Jim Rohn", "Nomzod")
+   - "emotion": "Neutral" / "Inspiring" / "Serious" / "Energetic"
+   - "text": videoda gapirilgan haqiqiy so'zma-so'z gap (asl tilida: inglizcha, ruscha yoki o'zbekcha)
+   - "translation": ushbu gapning ${langName}dagi aniq, to'liq va ravon tarjimasi
+   Butun video/audio davomiyligini qamrab oluvchi to'liq va batafsil xronologik segmentlar qaytaring!
+2. "summary" - TEZKOR XULOSA QISMI:
+   Foydalanuvchi butun 1-2 soatlik matnni o'qishga eringan holatda darhol tushunishi uchun, videoning barcha asosiy mavzulari va xulosalarini qamrab oluvchi KENG QAMROVLI, CHUQUR va MUKAMMAL tahliliy xulosa yozing (kamida 3-4 ta to'liq abzas).
+3. "transcript" - VIDEODAGI TO'LIQ UZLUKSIZ NUTQ MATNI:
+   Videodagi barcha gaplarni daqiqalari bilan to'liq matn shaklida bering.
+4. "viral_moments" maydonida videoning eng hayajonli, aforizmli yoki shov-shuvli 3-4 ta Shorts/Reels/TikTok lahzasini bering:
    [
      {
        "start": "01:25",
@@ -273,32 +277,55 @@ Quyidagi JSON formatda javob bering:
 
     case 'audio':
       return `${commonRules}
-Siz audio tahlilchi va nutq muhandisisiz. Audioni spikerlarga ajrating (diarizatsiya), hissiyotlarni va transkriptini bering.
+Siz professional audio tahlilchi, musiqa va nutq muhandisisiz. Ushbu audio faylni (qo'shiq, musiqa trek, suhbat, dars, podkast yoki audio yozuv) to'liq tahlil qiling.
+MUHIM TALABLAR:
+1. Agar bu qo'shiq yoki musiqa bo'lsa:
+   - "audio_timeline" va "transcript"da uning BARCHA so'zlarini (lyrics) kuylangan ketma-ketlikda, vaqt belgilari (start/end) bilan so'zma-so'z to'liq yozing va ${langName}dagi tarjimasini bering.
+   - "summary"da qo'shiqning ma'nosi, falsafasi, lirikasi, musiqiy janri, kayfiyati (mood) va ijro mahoratini keng qamrovli tushuntirib bering.
+2. Agar bu suhbat, dars yoki nutq bo'lsa:
+   - Barcha spikerlarni ajrating (diarizatsiya), ularning har bir gapini audio_timeline va transcriptda so'zma-so'z qoldirmasdan to'liq yozing.
 Quyidagi JSON formatda javob bering:
 {
-  "summary": "Audioning umumiy mazmuni va suhbatdoshlar xulosasi",
+  "headline": "Audio yoki qo'shiq nomi, ijrochi / spikerlar",
+  "summary": "Audioning umumiy mazmuni, musiqiy uslubi, qo'shiq ma'nosi yoki suhbat xulosasi (kamida 3 ta to'liq abzas)",
+  "genre": "Janr (masalan Pop, Hip-Hop, Rock, Maqom, Podkast, Intervyu)",
+  "sentiment": "Ijobiy / Romantik / Falsafiy / Energetik / Neytral",
+  "transcript": "Audiodagi to'liq so'zlar / qo'shiq matni (lyrics)",
   "audio_timeline": [
     {
       "start": "00:00",
-      "end": "00:15",
-      "speaker": "Spiker 1",
-      "emotion": "Neutral",
-      "text": "Gapirilgan gap",
-      "translation": "Tarjimasi"
+      "end": "00:20",
+      "speaker": "Ijrochi / Spiker",
+      "emotion": "Melodic",
+      "text": "Kuylangan yoki gapirilgan gap (asl tilda)",
+      "translation": "Ushbu qatorning ${langName}dagi to'liq tarjimasi"
     }
   ],
   "timestamps": [
-    {"time": "00:00", "text": "Audio boshlanishi"}
+    {"time": "00:00", "text": "Kirish / Intro"}
   ]
 }`;
 
     case 'document':
       return `${commonRules}
-Siz professional tahlilchi va hujjatlar ekspertisiz. Ushbu yuklangan PDF hujjatni (hisobot, kitob, ilmiy maqola, shartnoma yoki prezentatsiya) sinchkovlik bilan o'rganib, undagi asosiy mohiyatni tizimli qilib bering.
+Siz professional tahlilchi va hujjatlar ekspertisiz. Ushbu yuklangan PDF hujjatni (kitob, hisobot, ilmiy maqola, shartnoma yoki prezentatsiya) sinchkovlik bilan o'rganib, undagi to'liq matn va mohiyatni tizimli qilib bering.
+MUHIM:
+1. "transcript" maydonida hujjatdagi barcha asosiy matnlarni, boblar va bo'limlarni to'liq qamrab oluvchi matnni taqdim eting.
+2. "audio_timeline" maydonida hujjatning har bir bo'limi yoki sahifasi bo'yicha matn va uning ${langName}dagi tushunarli bayonini bering (foydalanuvchi ovozli o'qitganda eshitishi uchun).
 Quyidagi JSON formatda javob bering:
 {
   "document_title": "Hujjatning to'liq aniq nomi",
-  "summary": "Hujjatning asosiy mohiyati va maqsadi haqida 3-4 ta eng muhim jumlalardan iborat ravon xulosa",
+  "summary": "Hujjatning asosiy mohiyati va maqsadi haqida keng qamrovli, chuqur tahliliy xulosa (kamida 3 ta to'liq abzas)",
+  "transcript": "Hujjatdagi barcha boblar, bo'limlar va matnlarning to'liq chiqarilgan matni",
+  "audio_timeline": [
+    {
+      "start": "1-sahifa",
+      "speaker": "Hujjat matni",
+      "emotion": "Neutral",
+      "text": "1-sahifa yoki 1-bo'limdagi asosiy matn",
+      "translation": "Ushbu qismning ${langName}dagi ravon bayoni"
+    }
+  ],
   "key_theses": [
     "Asosiy g'oya yoki tezis 1 (sahifa yoki bo'lim ko'rsatilgan holda)",
     "Asosiy g'oya yoki tezis 2"

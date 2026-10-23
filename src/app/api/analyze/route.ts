@@ -338,16 +338,17 @@ ${videoMeta.description || 'Tavsif mavjud emas.'}
 
 ${
   videoMeta.hasTranscript
-    ? `- Video ichida aytilgan to'liq nutq va subtitrlar (Transkript):\n${videoMeta.transcript.slice(0, 25000)}`
+    ? `- Video ichida aytilgan to'liq nutq va subtitrlar (Transkript):\n${videoMeta.transcript.slice(0, 250000)}`
     : `- Izoh: Ushbu videoda ochiq subtitr mavjud emas. Tahlilni yuqoridagi video nomi, tavsifidagi texnik parametrlar, da'volar va faktlarga 100% asoslab bajaring.`
 }
 ==================================================
 
 QAT'IY TALAB:
 1. Siz FAQAT VA FAQAT ushbu "${videoMeta.title}" videosini tahlil qilishingiz shart!
-2. Mutlaqo begona mavzuni (masalan, O'zbekiston iqtisodiyoti yoki boshqa videolarni) aralashtirmang!
-3. Barcha sarlavha, xulosalar, fakt-tekshiruvlar, baholar va vaqt belgilari (timestamps) to'g'ridan-to'g'ri ushbu video mazmuniga tegishli bo'lsin.
-4. Vaqt belgilarini (timestamps) videoning davomiyligi (${videoMeta.durationFormatted}) doirasida mantiqiy ko'rsating.
+2. Videoda aytilgan barcha nutq va suhbatlarni to'liq qamrab oling. "audio_timeline" massivida videodagi barcha muhim gaplarni xronologik tartibda so'zma-so'z berib, tarjimasini taqdim eting!
+3. Mutlaqo begona mavzuni aralashtirmang!
+4. Barcha sarlavha, xulosalar, fakt-tekshiruvlar, baholar va vaqt belgilari (timestamps) to'g'ridan-to'g'ri ushbu video mazmuniga tegishli bo'lsin.
+5. Vaqt belgilarini (timestamps) videoning davomiyligi (${videoMeta.durationFormatted}) doirasida mantiqiy ko'rsating.
 `
         : `Tahlil qilinadigan video havolasi: ${videoUrl}`;
 
@@ -382,8 +383,30 @@ QAT'IY TALAB:
 
     // Construct full rich transcript text from audio_timeline or videoMeta
     let fullTranscriptText = videoMeta?.transcript || '';
-    if (!fullTranscriptText && parsed.audio_timeline && Array.isArray(parsed.audio_timeline) && parsed.audio_timeline.length > 0) {
-      fullTranscriptText = parsed.audio_timeline
+    let audioTimeline = Array.isArray(parsed.audio_timeline) ? parsed.audio_timeline : [];
+
+    if (audioTimeline.length === 0 && videoMeta?.transcript) {
+      const regex = /\[(\d{1,2}:\d{2}(?::\d{2})?)\]\s*(.*)/g;
+      let m;
+      let count = 0;
+      while ((m = regex.exec(videoMeta.transcript)) !== null && count < 300) {
+        const textSegment = m[2]?.trim() || '';
+        if (textSegment) {
+          audioTimeline.push({
+            start: m[1],
+            end: '',
+            speaker: videoMeta.author || 'Spiker',
+            emotion: 'Neutral',
+            text: textSegment,
+            translation: textSegment,
+          });
+          count++;
+        }
+      }
+    }
+
+    if (!fullTranscriptText && audioTimeline.length > 0) {
+      fullTranscriptText = audioTimeline
         .map((item: any) => `[${item.start || '00:00'}] ${item.speaker ? `${item.speaker}: ` : ''}${item.translation || item.text}`)
         .join('\n\n');
     }
@@ -425,7 +448,7 @@ QAT'IY TALAB:
       vocal_score: parsed.vocal_score,
       parasite_words: parsed.parasite_words || [],
       pitch_recommendations: parsed.pitch_recommendations || [],
-      audio_timeline: parsed.audio_timeline || [],
+      audio_timeline: audioTimeline,
       document_title: parsed.document_title,
       key_theses: parsed.key_theses || [],
       findings: parsed.findings || [],

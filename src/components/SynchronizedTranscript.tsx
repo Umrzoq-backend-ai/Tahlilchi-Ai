@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Copy,
@@ -14,6 +14,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import { AnalysisResponse, AudioTimelineItem } from '@/types';
+import VoiceReader, { VoiceReaderItem } from './VoiceReader';
 
 interface SynchronizedTranscriptProps {
   result: AnalysisResponse;
@@ -39,6 +40,8 @@ export default function SynchronizedTranscript({
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
   const [displayMode, setDisplayMode] = useState<TranscriptDisplayMode>('uzbek');
+  const [activeSpokenId, setActiveSpokenId] = useState<number | null>(null);
+  const [singleSpeakingIdx, setSingleSpeakingIdx] = useState<number | null>(null);
 
   // Parse lines from audio_timeline, raw transcript, or fallback
   const lines: TranscriptLine[] = useMemo(() => {
@@ -95,6 +98,44 @@ export default function SynchronizedTranscript({
       },
     ];
   }, [result]);
+
+  // VoiceReader Items mapping
+  const voiceReaderItems: VoiceReaderItem[] = useMemo(() => {
+    return lines.map((l, idx) => ({
+      id: idx,
+      time: l.time,
+      speaker: l.speaker,
+      text: l.translatedText,
+      originalText: l.originalText,
+    }));
+  }, [lines]);
+
+  // Auto-scroll to active spoken line
+  useEffect(() => {
+    if (activeSpokenId !== null) {
+      const el = document.getElementById(`transcript-line-${activeSpokenId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [activeSpokenId]);
+
+  // Single line speak
+  const speakSingleLine = (text: string, idx: number) => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      if (singleSpeakingIdx === idx) {
+        setSingleSpeakingIdx(null);
+        return;
+      }
+      setSingleSpeakingIdx(idx);
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.0;
+      u.onend = () => setSingleSpeakingIdx(null);
+      u.onerror = () => setSingleSpeakingIdx(null);
+      window.speechSynthesis.speak(u);
+    }
+  };
 
   // Filter lines by search query
   const filteredLines = useMemo(() => {
@@ -186,7 +227,15 @@ export default function SynchronizedTranscript({
 
   return (
     <div className="space-y-4">
-      {/* Top Controls Bar */}
+      {/* 1. EMBEDDED AI VOICE READER & DUBLYAJ PLAYER */}
+      <VoiceReader
+        items={voiceReaderItems}
+        summaryText={result.summary}
+        currentActiveId={activeSpokenId}
+        onActiveItemChange={setActiveSpokenId}
+      />
+
+      {/* 2. Top Controls Bar */}
       <div className="p-4 bg-[#070b16] rounded-3xl border border-slate-800 space-y-3 shadow-xl">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Language Mode Selector */}
@@ -302,104 +351,138 @@ export default function SynchronizedTranscript({
         </div>
       </div>
 
-      {/* Transcript Scroll Container */}
-      <div className="rounded-3xl border border-slate-800 bg-[#070b16] divide-y divide-slate-800/80 max-h-[560px] overflow-y-auto shadow-2xl p-2 sm:p-3 space-y-1">
+      {/* 3. Transcript Scroll Container */}
+      <div className="rounded-3xl border border-slate-800 bg-[#070b16] divide-y divide-slate-800/80 max-h-[580px] overflow-y-auto shadow-2xl p-2 sm:p-3 space-y-1">
         {filteredLines.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-500">
             &ldquo;{searchQuery}&rdquo; bo&apos;yicha hech qanday gap topilmadi.
           </div>
         ) : (
-          filteredLines.map((line, idx) => (
-            <div
-              key={idx}
-              className="p-3 sm:p-4 rounded-2xl hover:bg-slate-900/60 transition-all group flex items-start justify-between gap-3 border border-transparent hover:border-slate-800/80"
-            >
-              <div className="flex items-start gap-3 flex-1 min-w-0">
-                {/* Clickable Timestamp Chip */}
-                <button
-                  type="button"
-                  onClick={() => onSeek && onSeek(line.time)}
-                  className="timestamp-chip shrink-0 font-mono text-[11px] font-bold bg-blue-500/15 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded-xl transition-all flex items-center gap-1.5 shadow-sm hover:scale-105"
-                  title="Videoni shu vaqtdan ko'rish"
-                >
-                  <Play className="w-2.5 h-2.5 fill-current text-cyan-400" />
-                  <span>
-                    {line.time}
-                    {line.endTime ? ` - ${line.endTime}` : ''}
-                  </span>
-                </button>
+          filteredLines.map((line, idx) => {
+            const isLineActive = activeSpokenId === idx || singleSpeakingIdx === idx;
+            return (
+              <div
+                key={idx}
+                id={`transcript-line-${idx}`}
+                className={`p-3 sm:p-4 rounded-2xl transition-all group flex items-start justify-between gap-3 border ${
+                  isLineActive
+                    ? 'bg-blue-950/40 border-cyan-400/80 shadow-lg shadow-cyan-500/10'
+                    : 'hover:bg-slate-900/60 border-transparent hover:border-slate-800/80'
+                }`}
+              >
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  {/* Clickable Timestamp Chip */}
+                  <button
+                    type="button"
+                    onClick={() => onSeek && onSeek(line.time)}
+                    className="timestamp-chip shrink-0 font-mono text-[11px] font-bold bg-blue-500/15 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 px-2.5 py-1 rounded-xl transition-all flex items-center gap-1.5 shadow-sm hover:scale-105 cursor-pointer"
+                    title="Videoni shu vaqtdan ko'rish"
+                  >
+                    <Play className="w-2.5 h-2.5 fill-current text-cyan-400" />
+                    <span>
+                      {line.time}
+                      {line.endTime ? ` - ${line.endTime}` : ''}
+                    </span>
+                  </button>
 
-                <div className="space-y-1.5 flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    {line.speaker && (
-                      <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700/60">
-                        {line.speaker}
-                      </span>
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      {line.speaker && (
+                        <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700/60">
+                          {line.speaker}
+                        </span>
+                      )}
+                      {line.emotion && (
+                        <span className="text-[10px] text-slate-400 font-medium italic">
+                          ({line.emotion})
+                        </span>
+                      )}
+                      {isLineActive && (
+                        <span className="text-[10px] text-cyan-400 font-bold flex items-center gap-1 animate-pulse">
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                          O&apos;qilmoqda
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Render based on displayMode */}
+                    {displayMode === 'uzbek' && (
+                      <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-sans select-text">
+                        {highlightMatch(line.translatedText, searchQuery)}
+                      </p>
                     )}
-                    {line.emotion && (
-                      <span className="text-[10px] text-slate-400 font-medium italic">
-                        ({line.emotion})
-                      </span>
+
+                    {displayMode === 'original' && (
+                      <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans select-text italic">
+                        {highlightMatch(line.originalText, searchQuery)}
+                      </p>
+                    )}
+
+                    {displayMode === 'parallel' && (
+                      <div className="space-y-2 pt-1">
+                        <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+                          <span className="text-[10px] font-black uppercase text-cyan-400 tracking-wider block mb-0.5">
+                            Asl tildagi nutq:
+                          </span>
+                          {highlightMatch(line.originalText, searchQuery)}
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-blue-950/30 border border-blue-500/20 text-xs sm:text-sm text-blue-100 leading-relaxed font-medium">
+                          <span className="text-[10px] font-black uppercase text-blue-400 tracking-wider block mb-0.5">
+                            O&apos;zbekcha tarjimasi:
+                          </span>
+                          {highlightMatch(line.translatedText, searchQuery)}
+                        </div>
+                      </div>
                     )}
                   </div>
+                </div>
 
-                  {/* Render based on displayMode */}
-                  {displayMode === 'uzbek' && (
-                    <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-sans select-text">
-                      {highlightMatch(line.translatedText, searchQuery)}
-                    </p>
-                  )}
+                {/* Right Actions: Individual Speak Button & Copy Quote */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      speakSingleLine(
+                        displayMode === 'original' ? line.originalText : line.translatedText,
+                        idx
+                      )
+                    }
+                    className={`p-2 rounded-xl transition-all cursor-pointer ${
+                      singleSpeakingIdx === idx
+                        ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/40'
+                        : 'bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-cyan-400'
+                    }`}
+                    title="Ushbu gapni ovozda tinglash"
+                  >
+                    <Volume2 className={`w-3.5 h-3.5 ${singleSpeakingIdx === idx ? 'animate-bounce' : ''}`} />
+                  </button>
 
-                  {displayMode === 'original' && (
-                    <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans select-text italic">
-                      {highlightMatch(line.originalText, searchQuery)}
-                    </p>
-                  )}
-
-                  {displayMode === 'parallel' && (
-                    <div className="space-y-2 pt-1">
-                      <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs text-slate-300 leading-relaxed">
-                        <span className="text-[10px] font-black uppercase text-cyan-400 tracking-wider block mb-0.5">
-                          Asl tildagi nutq:
-                        </span>
-                        {highlightMatch(line.originalText, searchQuery)}
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-blue-950/30 border border-blue-500/20 text-xs sm:text-sm text-blue-100 leading-relaxed font-medium">
-                        <span className="text-[10px] font-black uppercase text-blue-400 tracking-wider block mb-0.5">
-                          O&apos;zbekcha tarjimasi:
-                        </span>
-                        {highlightMatch(line.translatedText, searchQuery)}
-                      </div>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleCopyQuote(line, idx)}
+                    className="opacity-70 group-hover:opacity-100 transition-opacity p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 cursor-pointer"
+                    title="Ushbu gapdan nusxa olish"
+                  >
+                    {copiedIdx === idx ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
                 </div>
               </div>
-
-              {/* Action: Copy Single Quote */}
-              <button
-                type="button"
-                onClick={() => handleCopyQuote(line, idx)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 shrink-0 shadow"
-                title="Ushbu gapdan nusxa olish"
-              >
-                {copiedIdx === idx ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-              </button>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] text-slate-400 px-2 gap-2">
         <span className="flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Vaqt tugmasini bosib, videodagi istalgan gapga to&apos;g&apos;ridan-to&apos;g&apos;ri o&apos;ting</span>
+          <span>Vaqt tugmasini bosib videodagi joyiga o&apos;ting yoki 🔊 tugmasini bosib ovozda tinglang</span>
         </span>
         <span className="text-cyan-400 font-semibold">
-          AI Speech-to-Text va Tarjima Standarti (Whisper & Descript sinxronizatsiyasi)
+          1-2 Soatlik To&apos;liq Nutq & Avtomatik Ovozli Dublyaj
         </span>
       </div>
     </div>

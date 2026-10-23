@@ -31,6 +31,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import VideoPlayer, { VideoPlayerRef } from '@/components/VideoPlayer';
 import AnalysisResult from '@/components/AnalysisResult';
 import Chat from '@/components/Chat';
+import { analyzeMediaDirectly } from '@/lib/gemini-client';
 
 const YouTubeIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
@@ -201,14 +202,14 @@ export default function AnalyzerPage() {
     },
   ];
 
-  // Check API Key and active stored analysis on mount
+  // Check API Key, active stored analysis, and restore drafts on mount
   useEffect(() => {
     const key =
       localStorage.getItem('quanta_api_key') ||
       localStorage.getItem('tahlilchi_api_key');
     setHasApiKey(!!key);
 
-    // Check if navigated from history
+    // 1. Check if navigated from history
     try {
       const stored = localStorage.getItem('quanta_active_analysis');
       if (stored) {
@@ -223,18 +224,59 @@ export default function AnalyzerPage() {
         }
         localStorage.removeItem('quanta_active_analysis');
         localStorage.removeItem('quanta_active_video_url');
+        return;
       }
     } catch (e) {
       // ignore
     }
 
-    // Check URL query parameters (e.g. /analyzer?mode=education)
+    // 2. Restore draft state from localStorage (persists across Settings navigation)
+    try {
+      const savedTab = localStorage.getItem('tahlilchi_draft_source_tab');
+      if (savedTab && ['video', 'youtube', 'audio', 'pdf'].includes(savedTab)) {
+        setSourceTab(savedTab as any);
+      }
+
+      const savedUrl = localStorage.getItem('tahlilchi_draft_youtube_url');
+      if (savedUrl) {
+        setYoutubeUrl(savedUrl);
+        setActiveVideoUrl(savedUrl);
+      }
+
+      const savedMode = localStorage.getItem('tahlilchi_draft_mode');
+      if (savedMode && ['meeting', 'news', 'education', 'child', 'interview', 'pitch', 'chat', 'document'].includes(savedMode)) {
+        setMode(savedMode as AnalysisMode);
+      }
+
+      const savedLang = localStorage.getItem('tahlilchi_draft_lang');
+      if (savedLang) {
+        setOutputLanguage(savedLang as OutputLanguage);
+      }
+
+      const savedChildAge = localStorage.getItem('tahlilchi_draft_child_age');
+      if (savedChildAge) setChildAge(parseInt(savedChildAge, 10));
+
+      const savedTargetRole = localStorage.getItem('tahlilchi_draft_target_role');
+      if (savedTargetRole) setTargetRole(savedTargetRole);
+
+      const savedSeniority = localStorage.getItem('tahlilchi_draft_seniority');
+      if (savedSeniority) setSeniorityLevel(savedSeniority);
+
+      const savedLastResult = localStorage.getItem('tahlilchi_last_result');
+      if (savedLastResult) {
+        setResult(JSON.parse(savedLastResult));
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // 3. Check URL query parameters (e.g. /analyzer?mode=education)
     try {
       const params = new URLSearchParams(window.location.search);
       const queryMode = params.get('mode') as AnalysisMode;
       if (
         queryMode &&
-        ['meeting', 'news', 'education', 'child', 'interview', 'pitch', 'chat'].includes(queryMode)
+        ['meeting', 'news', 'education', 'child', 'interview', 'pitch', 'chat', 'document'].includes(queryMode)
       ) {
         setMode(queryMode);
       }
@@ -242,6 +284,41 @@ export default function AnalyzerPage() {
       // ignore
     }
   }, []);
+
+  // Save drafts to localStorage whenever state changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('tahlilchi_draft_source_tab', sourceTab);
+    } catch (e) {}
+  }, [sourceTab]);
+
+  useEffect(() => {
+    try {
+      if (youtubeUrl) {
+        localStorage.setItem('tahlilchi_draft_youtube_url', youtubeUrl);
+      }
+    } catch (e) {}
+  }, [youtubeUrl]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tahlilchi_draft_mode', mode);
+    } catch (e) {}
+  }, [mode]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tahlilchi_draft_lang', outputLanguage);
+    } catch (e) {}
+  }, [outputLanguage]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('tahlilchi_draft_child_age', String(childAge));
+      localStorage.setItem('tahlilchi_draft_target_role', targetRole);
+      localStorage.setItem('tahlilchi_draft_seniority', seniorityLevel);
+    } catch (e) {}
+  }, [childAge, targetRole, seniorityLevel]);
 
   const handleSeek = (timeStr: string) => {
     if (playerRef.current) {
@@ -255,6 +332,8 @@ export default function AnalyzerPage() {
     setActiveVideoUrl(null);
     if (type === 'pdf') {
       setMode('document');
+    } else if (type === 'audio' && mode !== 'meeting' && mode !== 'interview') {
+      // If user uploads audio, keep or default to audio mode
     }
   };
 
@@ -263,6 +342,9 @@ export default function AnalyzerPage() {
     setActiveVideoUrl(youtubeUrl.trim());
     setSelectedFile(null);
     setMediaType('video');
+    try {
+      localStorage.setItem('tahlilchi_draft_youtube_url', youtubeUrl.trim());
+    } catch (e) {}
   };
 
   const handleSelectSample = (sample: typeof SAMPLE_VIDEOS[0]) => {
@@ -272,6 +354,10 @@ export default function AnalyzerPage() {
     setMediaType('video');
     setSourceTab('youtube');
     setMode(sample.mode);
+    try {
+      localStorage.setItem('tahlilchi_draft_youtube_url', sample.url);
+      localStorage.setItem('tahlilchi_draft_mode', sample.mode);
+    } catch (e) {}
   };
 
   const handleResetMedia = () => {
@@ -279,6 +365,10 @@ export default function AnalyzerPage() {
     setActiveVideoUrl(null);
     setResult(null);
     setError(null);
+    try {
+      localStorage.removeItem('tahlilchi_draft_youtube_url');
+      localStorage.removeItem('tahlilchi_last_result');
+    } catch (e) {}
   };
 
   const handleRunAnalysis = async () => {
@@ -288,12 +378,24 @@ export default function AnalyzerPage() {
 
     if (!apiKey) {
       setHasApiKey(false);
-      setError('Gemini API key is required. Please add your key in Settings.');
+      setError(
+        language === 'en'
+          ? 'Gemini API key is required. Please add your key in Settings.'
+          : language === 'ru'
+          ? 'Требуется ключ Gemini API. Добавьте ваш ключ в Настройках.'
+          : "Gemini API kaliti talab qilinadi. Iltimos Sozlamalar sahifasida kalitingizni kiriting."
+      );
       return;
     }
 
     if (!activeVideoUrl && !selectedFile) {
-      setError('Please upload a video/audio file or enter a YouTube URL.');
+      setError(
+        language === 'en'
+          ? 'Please upload a video/audio file or enter a YouTube URL.'
+          : language === 'ru'
+          ? 'Пожалуйста, загрузите файл видео/аудио или введите ссылку на YouTube.'
+          : "Iltimos, video/audio fayl yuklang yoki YouTube havolasini kiriting."
+      );
       return;
     }
 
@@ -305,31 +407,75 @@ export default function AnalyzerPage() {
       'gemini-2.5-flash';
 
     try {
-      let res: Response;
+      let data: AnalysisResponse;
 
-      if (selectedFile) {
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        formData.append('video', selectedFile);
-        formData.append('audio', selectedFile);
-        formData.append('pdf', selectedFile);
-        formData.append('media_type', mediaType);
-        formData.append('api_key', apiKey);
-        formData.append('model_name', modelName);
-        formData.append('mode', mode);
-        formData.append('target_language', outputLanguage);
-        formData.append('enable_transcript', String(enableTranscript));
-        formData.append('child_age', String(childAge));
-        formData.append('target_role', targetRole);
-        formData.append('seniority_level', seniorityLevel);
-        formData.append('tech_stack', techStack);
+      // Resilient execution:
+      // For PDF, Audio, or files > 3.5MB, direct client-side analysis bypasses Vercel 4.5MB payload limit & 60s timeout
+      const isLargeFile = selectedFile && selectedFile.size > 3.5 * 1024 * 1024;
+      const isDirectEligible = selectedFile && (isLargeFile || mediaType === 'pdf' || mediaType === 'audio');
 
-        res = await fetch('/api/analyze', {
-          method: 'POST',
-          body: formData,
+      if (isDirectEligible) {
+        console.log(`[Tahlilchi AI] To'g'ridan-to'g'ri Gemini multimodal mijoz tahlili (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)...`);
+        data = await analyzeMediaDirectly({
+          apiKey,
+          modelName,
+          file: selectedFile,
+          mode,
+          targetLanguage: outputLanguage,
+          enableTranscript,
+          childAge,
+          targetRole,
+          seniorityLevel,
+          techStack,
         });
+      } else if (selectedFile) {
+        // Attempt server route; if fails with 413 or network error, fall back to direct client
+        try {
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          formData.append('video', selectedFile);
+          formData.append('audio', selectedFile);
+          formData.append('pdf', selectedFile);
+          formData.append('media_type', mediaType);
+          formData.append('api_key', apiKey);
+          formData.append('model_name', modelName);
+          formData.append('mode', mode);
+          formData.append('target_language', outputLanguage);
+          formData.append('enable_transcript', String(enableTranscript));
+          formData.append('child_age', String(childAge));
+          formData.append('target_role', targetRole);
+          formData.append('seniority_level', seniorityLevel);
+          formData.append('tech_stack', techStack);
+
+          const res = await fetch('/api/analyze', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || `Analysis failed (${res.status})`);
+          }
+
+          data = await res.json();
+        } catch (serverErr: any) {
+          console.warn('[Tahlilchi AI] Server tahlilida cheklov yuz berdi, to\'g\'ridan-to\'g\'ri Gemini orqali qayta urinilmoqda:', serverErr);
+          data = await analyzeMediaDirectly({
+            apiKey,
+            modelName,
+            file: selectedFile,
+            mode,
+            targetLanguage: outputLanguage,
+            enableTranscript,
+            childAge,
+            targetRole,
+            seniorityLevel,
+            techStack,
+          });
+        }
       } else {
-        res = await fetch('/api/analyze', {
+        // YouTube URL via server route
+        const res = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -344,20 +490,26 @@ export default function AnalyzerPage() {
             seniority_level: seniorityLevel,
           }),
         });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || `Analysis failed (${res.status})`);
+        }
+
+        data = await res.json();
       }
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || `Analysis failed (${res.status})`);
-      }
-
-      const data: AnalysisResponse = await res.json();
       setResult(data);
+
+      // Persist last result
+      try {
+        localStorage.setItem('tahlilchi_last_result', JSON.stringify(data));
+      } catch (e) {}
 
       // Save to history
       const historyItem = {
         id: String(Date.now()),
-        title: data.headline || selectedFile?.name || activeVideoUrl || 'Video Analysis',
+        title: data.headline || data.document_title || selectedFile?.name || activeVideoUrl || 'Tahlil Natijasi',
         mode: data.mode || mode,
         createdAt: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         tokens: data.tokens?.total_tokens || 0,
@@ -395,14 +547,18 @@ export default function AnalyzerPage() {
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
             <p className="text-xs">
-              Gemini API key is required for video analysis. Add your free key in Settings to begin.
+              {language === 'en'
+                ? 'Gemini API key is required for video analysis. Add your free key in Settings to begin.'
+                : language === 'ru'
+                ? 'Для анализа требуется ключ Gemini API. Добавьте бесплатный ключ в Настройках, чтобы начать.'
+                : "Video va fayl tahlili uchun Gemini API kaliti zarur. Boshlash uchun Sozlamalar bo'limida bepul kalitingizni kiriting."}
             </p>
           </div>
           <Link
             href="/settings"
             className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs shrink-0 hover:bg-amber-400 transition-colors"
           >
-            Go to Settings
+            {language === 'en' ? 'Go to Settings' : language === 'ru' ? 'В Настройки' : "Sozlamalarga o'tish"}
           </Link>
         </div>
       )}

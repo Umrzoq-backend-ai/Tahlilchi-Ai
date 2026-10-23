@@ -34,6 +34,7 @@ import VisualTimelineChart from './VisualTimelineChart';
 import SynchronizedTranscript from './SynchronizedTranscript';
 import ShareExportModal from './ShareExportModal';
 import ViralClipsExtractor from './ViralClipsExtractor';
+import VoiceReader from './VoiceReader';
 
 interface AnalysisResultProps {
   result: AnalysisResponse | null;
@@ -57,6 +58,7 @@ export default function AnalysisResult({
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [activeWorkspaceView, setActiveWorkspaceView] = useState<WorkspaceView>('dossier');
+  const [dossierTab, setDossierTab] = useState<'transcript' | 'summary'>('transcript');
 
   if (loading) {
     return (
@@ -180,7 +182,10 @@ export default function AnalysisResult({
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] uppercase font-black tracking-wider px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                {isDocument ? 'PDF & HUJJAT' : result.mode?.toUpperCase()} TAHLILI
+                {isDocument
+                  ? (language === 'en' ? 'PDF & DOCUMENT' : language === 'ru' ? 'PDF И ДОКУМЕНТ' : 'PDF & HUJJAT')
+                  : result.mode?.toUpperCase()}{' '}
+                {language === 'en' ? 'ANALYSIS' : language === 'ru' ? 'АНАЛИЗ' : 'TAHLILI'}
               </span>
               {result.metadata?.author && (
                 <span className="text-xs text-slate-300 font-semibold px-2 py-0.5 rounded-lg bg-slate-800/70 border border-slate-700">
@@ -194,12 +199,12 @@ export default function AnalysisResult({
               )}
               {result.sentiment && (
                 <span className="text-xs font-medium text-emerald-300 px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                  Ohang: {result.sentiment}
+                  {language === 'en' ? 'Tone: ' : language === 'ru' ? 'Тон: ' : 'Ohang: '}{result.sentiment}
                 </span>
               )}
               {result.tokens && result.tokens.total_tokens > 0 && (
                 <span className="text-[11px] text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded border border-slate-700/60">
-                  {result.tokens.total_tokens.toLocaleString()} token
+                  {result.tokens.total_tokens.toLocaleString()} {language === 'en' ? 'tokens' : language === 'ru' ? 'токенов' : 'token'}
                 </span>
               )}
             </div>
@@ -264,7 +269,7 @@ export default function AnalysisResult({
             <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
             <span>{t.analyzer.tabViral}</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-300 font-mono border border-rose-500/30">
-              AI Klip
+              {language === 'en' ? 'AI Clip' : language === 'ru' ? 'ИИ Клип' : 'AI Klip'}
             </span>
           </button>
 
@@ -280,7 +285,7 @@ export default function AnalysisResult({
             <Send className="w-3.5 h-3.5 text-sky-400" />
             <span>{t.analyzer.tabRepurpose}</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-400/20 text-sky-300 font-mono">
-              Yangi
+              {language === 'en' ? 'New' : language === 'ru' ? 'Новое' : 'Yangi'}
             </span>
           </button>
 
@@ -296,7 +301,7 @@ export default function AnalysisResult({
             <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
             <span>{t.analyzer.tabTranscript}</span>
             <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-400/20 text-cyan-300 font-mono border border-cyan-400/30">
-              Nutq & Tarjima
+              {language === 'en' ? 'Speech & Translation' : language === 'ru' ? 'Речь и перевод' : 'Nutq & Tarjima'}
             </span>
           </button>
 
@@ -381,107 +386,126 @@ export default function AnalysisResult({
               </div>
             </div>
 
-            {/* Executive Summary */}
-            <div className="space-y-2">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <span>📝</span>
-                <span>{t.analyzer.summaryTitle}</span>
-              </h4>
-              <div className="border-l-2 border-blue-500/80 pl-4 py-1">
-                <p className="text-sm text-slate-100 leading-relaxed whitespace-pre-line font-medium">
-                  {result.summary}
-                </p>
-              </div>
-              {result.agenda && (
-                <div className="mt-3 pt-3 border-t border-slate-800/60 text-xs text-slate-400">
-                  <strong className="text-slate-300 block mb-1">Mavzular xronologiyasi:</strong>
-                  <p className="whitespace-pre-line leading-relaxed">{result.agenda}</p>
-                </div>
-              )}
+            {/* PRIMARY WORKSPACE CONTROLLER: TO'LIQ TRANSKRIPT (ASOSIY) VS AI XULOSA */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 bg-[#060b18] rounded-2xl border border-slate-800 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setDossierTab('transcript')}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
+                  dossierTab === 'transcript'
+                    ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white shadow-lg shadow-cyan-600/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                }`}
+              >
+                <Volume2 className="w-4 h-4 text-cyan-300" />
+                <span>
+                  {language === 'en'
+                    ? '🎙️ Full Verbatim Transcript & Voice Reader'
+                    : language === 'ru'
+                    ? '🎙️ Полный транскрипт речи и ИИ озвучка'
+                    : "🎙️ To'liq Nutq Transkripti va AI Ovoz"}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 font-mono border border-cyan-400/30">
+                  {result.audio_timeline?.length ? `${result.audio_timeline.length} gap` : 'Asosiy'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDossierTab('summary')}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
+                  dossierTab === 'summary'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>
+                  {language === 'en'
+                    ? '📝 AI Executive Summary & Insights'
+                    : language === 'ru'
+                    ? '📝 Краткое резюме и аналитика ИИ'
+                    : "📝 AI Qisqa Tahliliy Xulosasi"}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-mono">
+                  {language === 'en' ? 'Quick summary' : language === 'ru' ? 'Быстро' : 'Konspekt'}
+                </span>
+              </button>
             </div>
 
-            {/* B. TO'LIQ NUTQ TRANSKRIPTI VA O'ZBEKCHA TARJIMASI (FULL SPEECH-TO-TEXT HIGHLIGHT) */}
-            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-cyan-950/40 border border-cyan-500/30 shadow-xl space-y-3">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 shadow-lg shadow-cyan-500/10">
-                    <Volume2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-bold text-white flex items-center gap-2">
-                      <span>Videodagi To&apos;liq Nutq va O&apos;zbekcha Tarjima</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono border border-cyan-500/30">
-                        {result.audio_timeline?.length || (result.transcript ? 'Mavjud' : 'Transkript')}
-                      </span>
-                    </h5>
-                    <p className="text-xs text-slate-400">
-                      Videoda gapirilgan barcha gaplar, vaqt belgilari va o&apos;zbek tilidagi to&apos;liq matni
+            {/* TAB CONTENT 1: FULL VERBATIM TRANSCRIPT & SYNCHRONIZED VOICE PLAYER */}
+            {dossierTab === 'transcript' && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="p-3.5 rounded-2xl bg-blue-950/20 border border-blue-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-base">💡</span>
+                    <p className="text-slate-300 leading-relaxed">
+                      {language === 'en'
+                        ? '1-2 hour video/audio speech is transcribed verbatim below. If you prefer a quick overview, switch to the Executive Summary.'
+                        : language === 'ru'
+                        ? 'Речь из видео/аудио транскрибирована дословно. Если вы хотите прочитать только ключевую суть, переключитесь на Резюме.'
+                        : "Videoda aytilgan barcha gaplar to'liq va so'zma-so'z keltirilgan. Agar matn uzun bo'lsa, AI Qisqa Xulosasidan foydalanishingiz mumkin."}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setDossierTab('summary')}
+                    className="px-3.5 py-1.5 rounded-xl font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all shrink-0 cursor-pointer self-start sm:self-auto"
+                  >
+                    {language === 'en' ? 'Read AI Summary →' : language === 'ru' ? 'Читать резюме ИИ →' : "AI Xulosasini O'qish →"}
+                  </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setActiveWorkspaceView('transcript')}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white transition-all shadow-md shadow-blue-500/20 flex items-center gap-1.5 shrink-0 self-stretch sm:self-auto justify-center"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Sinxron Transkriptga O&apos;tish &rarr;</span>
-                </button>
+                <SynchronizedTranscript
+                  result={result}
+                  onSeek={onSeek}
+                />
               </div>
+            )}
 
-              {/* Dialogue Preview Snippets */}
-              {result.audio_timeline && result.audio_timeline.length > 0 ? (
-                <div className="space-y-2 pt-2 border-t border-slate-800/80">
-                  {result.audio_timeline.slice(0, 3).map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 rounded-2xl bg-slate-900/70 border border-slate-800/90 flex items-start gap-3 text-xs"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => onSeek && onSeek(item.start)}
-                        className="font-mono text-[10px] font-bold text-cyan-400 bg-cyan-950/70 hover:bg-cyan-900 px-2.5 py-1 rounded-lg border border-cyan-800/60 shrink-0 transition-colors flex items-center gap-1"
-                        title="Videoni shu vaqtdan ko'rish"
-                      >
-                        <Play className="w-2.5 h-2.5 fill-current" />
-                        <span>{item.start}</span>
-                      </button>
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                          {item.speaker || 'Spiker'}:
-                        </span>
-                        <p className="text-slate-100 font-medium leading-relaxed">
-                          {item.translation || item.text}
-                        </p>
-                        {item.translation && item.text !== item.translation && (
-                          <p className="text-[11px] text-slate-400 italic">
-                            Asl tilda: &ldquo;{item.text}&rdquo;
-                          </p>
-                        )}
-                      </div>
+            {/* TAB CONTENT 2: EXECUTIVE SUMMARY & STRUCTURED DOSSIER */}
+            {dossierTab === 'summary' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {/* Voice player specifically reading executive summary */}
+                <div className="p-4 rounded-2xl bg-[#070d1d] border border-slate-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Volume2 className="w-4 h-4 text-cyan-400" />
+                      <span className="text-xs font-bold text-slate-200">
+                        {language === 'en' ? 'Listen to AI Executive Summary' : language === 'ru' ? 'Слушать резюме ИИ голосом' : "AI Xulosasini Ovozli Tinglash"}
+                      </span>
                     </div>
-                  ))}
-
-                  <div className="pt-1 flex items-center justify-between text-xs">
-                    <span className="text-slate-400">
-                      Jami {result.audio_timeline.length} ta gap transkript qilindi.
+                    <span className="text-[11px] font-mono text-slate-400">
+                      Web Speech TTS
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setActiveWorkspaceView('transcript')}
-                      className="text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1"
-                    >
-                      <span>Barcha gaplarni vaqt bo&apos;yicha ko&apos;rish va .SRT yuklab olish &rarr;</span>
-                    </button>
                   </div>
+                  <VoiceReader
+                    items={[]}
+                    summaryText={result.summary}
+                    targetLang={language === 'ru' ? 'ru' : language === 'en' ? 'en' : 'uz'}
+                  />
                 </div>
-              ) : result.transcript ? (
-                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-300 leading-relaxed max-h-32 overflow-y-auto whitespace-pre-line font-sans">
-                  {result.transcript.slice(0, 450)}...
+
+                {/* Executive Summary Paragraphs */}
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <span>📝</span>
+                    <span>{t.analyzer.summaryTitle}</span>
+                  </h4>
+                  <div className="border-l-2 border-blue-500/80 pl-4 py-1">
+                    <p className="text-sm text-slate-100 leading-relaxed whitespace-pre-line font-medium">
+                      {result.summary}
+                    </p>
+                  </div>
+                  {result.agenda && (
+                    <div className="mt-3 pt-3 border-t border-slate-800/60 text-xs text-slate-400">
+                      <strong className="text-slate-300 block mb-1">
+                        {language === 'en' ? 'Topics Chronology:' : language === 'ru' ? 'Хронология тем:' : 'Mavzular xronologiyasi:'}
+                      </strong>
+                      <p className="whitespace-pre-line leading-relaxed">{result.agenda}</p>
+                    </div>
+                  )}
                 </div>
-              ) : null}
-            </div>
 
             {/* A. YANGILIKLAR & FACT-CHECK */}
             {result.mode === 'news' && (
@@ -489,7 +513,8 @@ export default function AnalysisResult({
                 {result.bias_indicators && result.bias_indicators.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span className="font-bold text-slate-400 flex items-center gap-1">
-                      <Scale className="w-3.5 h-3.5 text-amber-400" /> Obyektivlik:
+                      <Scale className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{language === 'en' ? 'Objectivity / Bias:' : language === 'ru' ? 'Объективность:' : 'Obyektivlik:'}</span>
                     </span>
                     {result.bias_indicators.map((b, idx) => (
                       <span
@@ -506,7 +531,7 @@ export default function AnalysisResult({
                   <div className="space-y-2.5">
                     <h5 className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>Tekshirilgan Asosiy Faktlar</span>
+                      <span>{language === 'en' ? 'Verified Key Facts' : language === 'ru' ? 'Проверенные ключевые факты' : 'Tekshirilgan Asosiy Faktlar'}</span>
                     </h5>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {result.key_facts.map((fact, idx) => (
@@ -526,7 +551,7 @@ export default function AnalysisResult({
                   <div className="space-y-2.5">
                     <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                       <span>🔍</span>
-                      <span>Da'volar va Haqiqat Tekshiruvi (Fact-Check)</span>
+                      <span>{language === 'en' ? 'Claims & Fact-Check Verification' : language === 'ru' ? 'Проверка фактов и утверждений' : "Da'volar va Haqiqat Tekshiruvi (Fact-Check)"}</span>
                     </h5>
                     <div className="divide-y divide-slate-800/80 border border-slate-800/80 rounded-2xl bg-[#080d1a]/80 overflow-hidden">
                       {result.fact_check.map((item, idx) => {
@@ -567,7 +592,11 @@ export default function AnalysisResult({
                                     : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                                 }`}
                               >
-                                {isTrue ? '✓ HAQIQAT' : isFalse ? '❌ YOLG\'ON' : item.verdict}
+                                {isTrue
+                                  ? (language === 'en' ? '✓ TRUE' : language === 'ru' ? '✓ ПРАВДА' : '✓ HAQIQAT')
+                                  : isFalse
+                                  ? (language === 'en' ? '❌ FALSE' : language === 'ru' ? '❌ ЛОЖЬ' : "❌ YOLG'ON")
+                                  : item.verdict}
                               </span>
                             </div>
                           </div>
@@ -586,7 +615,7 @@ export default function AnalysisResult({
                   <div className="space-y-2">
                     <h5 className="text-[11px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
                       <Bookmark className="w-4 h-4" />
-                      <span>Hujjatning Asosiy Tezislari</span>
+                      <span>{language === 'en' ? 'Key Document Theses' : language === 'ru' ? 'Ключевые тезисы документа' : 'Hujjatning Asosiy Tezislari'}</span>
                     </h5>
                     <div className="space-y-2">
                       {result.key_theses.map((thesis, idx) => (
@@ -606,7 +635,7 @@ export default function AnalysisResult({
                   <div className="space-y-2.5">
                     <h5 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                       <FileText className="w-4 h-4 text-blue-400" />
-                      <span>Muhim Natijalar va Sahifa Ko'rsatkichlari</span>
+                      <span>{language === 'en' ? 'Key Findings & Page Indicators' : language === 'ru' ? 'Важные выводы и страницы' : "Muhim Natijalar va Sahifa Ko'rsatkichlari"}</span>
                     </h5>
                     <div className="divide-y divide-slate-800/80 border border-slate-800/80 rounded-2xl bg-[#080d1a]/80 overflow-hidden">
                       {result.findings.map((f, idx) => (
@@ -635,7 +664,7 @@ export default function AnalysisResult({
                   <div className="space-y-2">
                     <h5 className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>Qabul Qilingan Muhim Qarorlar</span>
+                      <span>{language === 'en' ? 'Key Decisions Taken' : language === 'ru' ? 'Принятые ключевые решения' : 'Qabul Qilingan Muhim Qarorlar'}</span>
                     </h5>
                     <div className="space-y-2">
                       {result.key_decisions.map((d, idx) => (
@@ -662,7 +691,7 @@ export default function AnalysisResult({
                   <div className="space-y-2">
                     <h5 className="text-[11px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1.5">
                       <Calendar className="w-4 h-4" />
-                      <span>Harakatlar Rejasi (Action Items)</span>
+                      <span>{language === 'en' ? 'Action Items Plan' : language === 'ru' ? 'План действий' : 'Harakatlar Rejasi (Action Items)'}</span>
                     </h5>
                     <div className="divide-y divide-slate-800/80 border border-slate-800/80 rounded-2xl bg-[#080d1a]/80 overflow-hidden">
                       {result.action_items.map((item, idx) => (
@@ -676,7 +705,7 @@ export default function AnalysisResult({
                                   <span>{item.assignee}</span>
                                 </span>
                               )}
-                              {item.deadline && <span>Muddati: {item.deadline}</span>}
+                              {item.deadline && <span>{language === 'en' ? 'Deadline: ' : language === 'ru' ? 'Срок: ' : 'Muddati: '}{item.deadline}</span>}
                             </div>
                           </div>
                           {item.timestamp && (
@@ -700,7 +729,7 @@ export default function AnalysisResult({
               <div className="space-y-4 pt-3 border-t border-slate-800/80">
                 {result.prerequisites && result.prerequisites.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="font-bold text-slate-400">Kerakli boshlang'ich bilimlar:</span>
+                    <span className="font-bold text-slate-400">{language === 'en' ? 'Prerequisites:' : language === 'ru' ? 'Необходимые знания:' : "Kerakli boshlang'ich bilimlar:"}</span>
                     {result.prerequisites.map((p, idx) => (
                       <span
                         key={idx}
@@ -715,7 +744,7 @@ export default function AnalysisResult({
                 {result.core_concepts && result.core_concepts.length > 0 && (
                   <div className="space-y-2">
                     <h5 className="text-[11px] font-bold uppercase tracking-wider text-teal-400">
-                      Asosiy Tushunchalar va Qoidalar
+                      {language === 'en' ? 'Core Concepts & Principles' : language === 'ru' ? 'Ключевые концепции и правила' : 'Asosiy Tushunchalar va Qoidalar'}
                     </h5>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {result.core_concepts.map((c, idx) => (
@@ -745,7 +774,7 @@ export default function AnalysisResult({
               <div className="space-y-4 pt-3 border-t border-slate-800/80">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-slate-900/60 rounded-2xl border border-slate-800">
                   <div>
-                    <span className="text-[11px] uppercase font-bold text-slate-400">Xavfsizlik Xulosasi</span>
+                    <span className="text-[11px] uppercase font-bold text-slate-400">{language === 'en' ? 'Safety Verdict' : language === 'ru' ? 'Вердикт безопасности' : 'Xavfsizlik Xulosasi'}</span>
                     <div className="flex items-center gap-3 mt-1">
                       <span
                         className={`text-xs font-black px-3 py-1 rounded-xl border ${
@@ -757,13 +786,13 @@ export default function AnalysisResult({
                         }`}
                       >
                         {result.safety_verdict === 'SAFE'
-                          ? '✓ XAVFSIZ'
+                          ? (language === 'en' ? '✓ SAFE' : language === 'ru' ? '✓ БЕЗОПАСНО' : '✓ XAVFSIZ')
                           : result.safety_verdict === 'CAUTION'
-                          ? '⚠️ EHTIYOTKORLIK ZARUR'
-                          : '⛔ ZARARLI'}
+                          ? (language === 'en' ? '⚠️ CAUTION' : language === 'ru' ? '⚠️ ОСТОРОЖНО' : '⚠️ EHTIYOTKORLIK ZARUR')
+                          : (language === 'en' ? '⛔ HARMFUL' : language === 'ru' ? '⛔ ОПАСНО' : '⛔ ZARARLI')}
                       </span>
                       {result.safety_score && (
-                        <span className="text-xs text-slate-300 font-mono">Baho: {result.safety_score}/100</span>
+                        <span className="text-xs text-slate-300 font-mono">{language === 'en' ? 'Score: ' : language === 'ru' ? 'Оценка: ' : 'Baho: '}{result.safety_score}/100</span>
                       )}
                     </div>
                   </div>
@@ -778,7 +807,7 @@ export default function AnalysisResult({
                   <div className="space-y-2">
                     <h5 className="text-[11px] font-bold uppercase text-red-400 flex items-center gap-1.5">
                       <ShieldAlert className="w-4 h-4" />
-                      <span>Diqqat Qilinishi Kerak Bo'lgan Sahnalar</span>
+                      <span>{language === 'en' ? 'Scenes Requiring Attention' : language === 'ru' ? 'Сцены требующие внимания' : "Diqqat Qilinishi Kerak Bo'lgan Sahnalar"}</span>
                     </h5>
                     <div className="space-y-2">
                       {result.negative_triggers.map((trig, idx) => (
@@ -788,7 +817,7 @@ export default function AnalysisResult({
                         >
                           <div>
                             <span className="font-bold text-red-300">{trig.type}</span>
-                            <span className="text-slate-400 ml-2">({trig.intensity} daraja)</span>
+                            <span className="text-slate-400 ml-2">({trig.intensity})</span>
                             <p className="text-slate-300 mt-1">{trig.description}</p>
                           </div>
                           {trig.timestamp && (
@@ -812,7 +841,7 @@ export default function AnalysisResult({
               <div className="space-y-4 pt-3 border-t border-slate-800/80">
                 <div className="flex items-center justify-between p-4 bg-slate-900/60 rounded-2xl border border-slate-800">
                   <div>
-                    <span className="text-[11px] uppercase font-bold text-slate-400">Nomzod Moslik Bali</span>
+                    <span className="text-[11px] uppercase font-bold text-slate-400">{language === 'en' ? 'Candidate Match Score' : language === 'ru' ? 'Оценка соответствия' : 'Nomzod Moslik Bali'}</span>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-2xl font-black text-blue-400 font-mono">
                         {result.match_score || 85}/100
@@ -824,7 +853,7 @@ export default function AnalysisResult({
                   </div>
                   {result.interviewer_advice && (
                     <p className="text-xs text-slate-300 max-w-md">
-                      <strong>HR maslahati:</strong> {result.interviewer_advice}
+                      <strong>{language === 'en' ? 'HR Advice: ' : language === 'ru' ? 'Совет HR: ' : 'HR maslahati: '}</strong> {result.interviewer_advice}
                     </p>
                   )}
                 </div>
@@ -833,7 +862,7 @@ export default function AnalysisResult({
                   {result.strengths && result.strengths.length > 0 && (
                     <div className="p-3.5 bg-emerald-950/20 border border-emerald-900/40 rounded-xl space-y-1.5">
                       <span className="font-bold text-emerald-400 flex items-center gap-1">
-                        <ThumbsUp className="w-3.5 h-3.5" /> Kuchli tomonlari
+                        <ThumbsUp className="w-3.5 h-3.5" /> {language === 'en' ? 'Strengths' : language === 'ru' ? 'Сильные стороны' : 'Kuchli tomonlari'}
                       </span>
                       <ul className="space-y-1 list-disc list-inside text-slate-300">
                         {result.strengths.map((s, idx) => (
@@ -845,7 +874,7 @@ export default function AnalysisResult({
                   {result.weaknesses && result.weaknesses.length > 0 && (
                     <div className="p-3.5 bg-amber-950/20 border border-amber-900/40 rounded-xl space-y-1.5">
                       <span className="font-bold text-amber-400 flex items-center gap-1">
-                        <ThumbsDown className="w-3.5 h-3.5" /> Rivojlanish sohalari
+                        <ThumbsDown className="w-3.5 h-3.5" /> {language === 'en' ? 'Growth Areas' : language === 'ru' ? 'Зоны развития' : 'Rivojlanish sohalari'}
                       </span>
                       <ul className="space-y-1 list-disc list-inside text-slate-300">
                         {result.weaknesses.map((w, idx) => (
@@ -863,26 +892,26 @@ export default function AnalysisResult({
               <div className="space-y-4 pt-3 border-t border-slate-800/80">
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-center text-xs">
                   <div className="p-3 bg-purple-950/30 border border-purple-900/40 rounded-xl">
-                    <span className="text-slate-400 block mb-0.5">Umumiy Ball</span>
+                    <span className="text-slate-400 block mb-0.5">{language === 'en' ? 'Overall Score' : language === 'ru' ? 'Общий балл' : 'Umumiy Ball'}</span>
                     <span className="text-xl font-black text-purple-300 font-mono">{result.overall_pitch_score || 80}</span>
                   </div>
                   <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl">
-                    <span className="text-slate-400 block mb-0.5">Verbal (Nutq)</span>
+                    <span className="text-slate-400 block mb-0.5">{language === 'en' ? 'Verbal (Speech)' : language === 'ru' ? 'Вербально' : 'Verbal (Nutq)'}</span>
                     <span className="text-lg font-bold text-slate-200 font-mono">{result.verbal_score || 85}</span>
                   </div>
                   <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl">
-                    <span className="text-slate-400 block mb-0.5">Visual (Tana tili)</span>
+                    <span className="text-slate-400 block mb-0.5">{language === 'en' ? 'Visual (Body)' : language === 'ru' ? 'Визуально' : 'Visual (Tana tili)'}</span>
                     <span className="text-lg font-bold text-slate-200 font-mono">{result.visual_score || 75}</span>
                   </div>
                   <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl">
-                    <span className="text-slate-400 block mb-0.5">Vocal (Intonatsiya)</span>
+                    <span className="text-slate-400 block mb-0.5">{language === 'en' ? 'Vocal (Tone)' : language === 'ru' ? 'Вокально' : 'Vocal (Intonatsiya)'}</span>
                     <span className="text-lg font-bold text-slate-200 font-mono">{result.vocal_score || 80}</span>
                   </div>
                 </div>
 
                 {result.parasite_words && result.parasite_words.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="font-bold text-slate-400">Parazit so'zlar:</span>
+                    <span className="font-bold text-slate-400">{language === 'en' ? 'Filler words:' : language === 'ru' ? 'Слова-паразиты:' : "Parazit so'zlar:"}</span>
                     {result.parasite_words.map((pw, idx) => (
                       <span key={idx} className="px-2 py-0.5 rounded bg-red-950/40 text-red-300 border border-red-900/50">
                         ❌ "{pw}"
@@ -890,6 +919,42 @@ export default function AnalysisResult({
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* H. AUDIO & MUSIC SPECIFIC CARD */}
+            {(result.mode === 'audio' || result.genre) && (
+              <div className="space-y-4 pt-3 border-t border-slate-800/80">
+                <div className="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+                  <div>
+                    <span className="text-[11px] uppercase font-bold text-slate-400 block">
+                      {language === 'en' ? 'Music / Audio Analysis' : language === 'ru' ? 'Анализ музыки и аудио' : 'Musiqa va Audio Tahlili'}
+                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      {result.genre && (
+                        <span className="px-2.5 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">
+                          🎵 {result.genre}
+                        </span>
+                      )}
+                      {result.sentiment && (
+                        <span className="px-2.5 py-0.5 rounded-lg bg-pink-500/20 text-pink-300 border border-pink-500/40 font-medium">
+                          ✨ {result.sentiment}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setDossierTab('transcript')}
+                    className="px-3 py-1.5 rounded-xl font-bold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 transition-all flex items-center gap-1.5"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                    <span>{language === 'en' ? 'View Full Lyrics / Transcript →' : language === 'ru' ? 'Смотреть текст / транскрипт →' : "To'liq Qo'shiq Matnini Ko'rish →"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
               </div>
             )}
           </div>
@@ -979,11 +1044,14 @@ export default function AnalysisResult({
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <Award className="w-5 h-5 text-amber-400" />
-              <h4 className="text-sm font-bold text-slate-100">Bilimni Sinash Testi (Interactive Quiz)</h4>
+              <h4 className="text-sm font-bold text-slate-100">
+                {language === 'en' ? 'Interactive Knowledge Quiz' : language === 'ru' ? 'Интерактивный тест на знания' : 'Bilimni Sinash Testi (Interactive Quiz)'}
+              </h4>
             </div>
             {quizSubmitted && (
               <span className="text-xs font-bold px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                Natija: {quizScore.correct} / {quizScore.total} ({Math.round((quizScore.correct / quizScore.total) * 100)}%)
+                {language === 'en' ? 'Result: ' : language === 'ru' ? 'Результат: ' : 'Natija: '}
+                {quizScore.correct} / {quizScore.total} ({Math.round((quizScore.correct / quizScore.total) * 100)}%)
               </span>
             )}
           </div>
@@ -1002,7 +1070,7 @@ export default function AnalysisResult({
                         onClick={() => onSeek && onSeek(q.timestamp_hint!)}
                         className="timestamp-chip text-[10px] font-mono text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 shrink-0"
                       >
-                        💡 {q.timestamp_hint} da javobi bor
+                        💡 {q.timestamp_hint} {language === 'en' ? 'has answer' : language === 'ru' ? 'содержит ответ' : 'da javobi bor'}
                       </button>
                     )}
                   </div>
@@ -1041,7 +1109,8 @@ export default function AnalysisResult({
 
                   {quizSubmitted && q.explanation && (
                     <p className="text-[11px] text-slate-400 pt-1 leading-relaxed border-t border-slate-800">
-                      <strong>Izoh:</strong> {q.explanation}
+                      <strong>{language === 'en' ? 'Explanation: ' : language === 'ru' ? 'Пояснение: ' : 'Izoh: '}</strong>
+                      {q.explanation}
                     </p>
                   )}
                 </div>
@@ -1055,7 +1124,7 @@ export default function AnalysisResult({
                 onClick={() => setQuizSubmitted(true)}
                 className="px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white transition-all shadow-md shadow-blue-500/20"
               >
-                Javoblarni Tekshirish
+                {language === 'en' ? 'Check Answers' : language === 'ru' ? 'Проверить ответы' : 'Javoblarni Tekshirish'}
               </button>
             ) : (
               <button
@@ -1066,7 +1135,7 @@ export default function AnalysisResult({
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Qayta topshirish</span>
+                <span>{language === 'en' ? 'Retake Quiz' : language === 'ru' ? 'Пройти снова' : 'Qayta topshirish'}</span>
               </button>
             )}
           </div>
