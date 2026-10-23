@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CheckCircle2,
   AlertCircle,
@@ -25,6 +25,8 @@ import {
   Printer,
   Volume2,
   Play,
+  Pause,
+  Headphones,
   Flame,
 } from 'lucide-react';
 import { AnalysisResponse } from '@/types';
@@ -35,6 +37,7 @@ import SynchronizedTranscript from './SynchronizedTranscript';
 import ShareExportModal from './ShareExportModal';
 import ViralClipsExtractor from './ViralClipsExtractor';
 import VoiceReader from './VoiceReader';
+import AudioPodcastOverview from './AudioPodcastOverview';
 
 interface AnalysisResultProps {
   result: AnalysisResponse | null;
@@ -44,7 +47,7 @@ interface AnalysisResultProps {
   onSeek?: (timeStr: string) => void;
 }
 
-type WorkspaceView = 'dossier' | 'viral' | 'repurpose' | 'transcript' | 'timeline' | 'export';
+type WorkspaceView = 'dossier' | 'podcast' | 'transcript' | 'viral' | 'repurpose' | 'timeline' | 'export';
 
 export default function AnalysisResult({
   result,
@@ -59,6 +62,33 @@ export default function AnalysisResult({
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [activeWorkspaceView, setActiveWorkspaceView] = useState<WorkspaceView>('dossier');
   const [dossierTab, setDossierTab] = useState<'transcript' | 'summary'>('transcript');
+  const [isSummarySpeaking, setIsSummarySpeaking] = useState(false);
+
+  // Stop any active speech on unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const toggleSpeakSummary = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window) || !result?.summary) return;
+    if (isSummarySpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSummarySpeaking(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(result.summary);
+    u.rate = 1.0;
+    u.lang = language === 'ru' ? 'ru-RU' : language === 'en' ? 'en-US' : 'tr-TR';
+    u.onend = () => setIsSummarySpeaking(false);
+    u.onerror = () => setIsSummarySpeaking(false);
+    setIsSummarySpeaking(true);
+    window.speechSynthesis.speak(u);
+  };
 
   if (loading) {
     return (
@@ -259,6 +289,22 @@ export default function AnalysisResult({
 
           <button
             type="button"
+            onClick={() => setActiveWorkspaceView('podcast')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+              activeWorkspaceView === 'podcast'
+                ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-600/30'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            }`}
+          >
+            <Headphones className="w-3.5 h-3.5 text-cyan-400" />
+            <span>AI Podkast</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-400/20 text-cyan-300 font-mono border border-cyan-400/30">
+              NotebookLM
+            </span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveWorkspaceView('viral')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
               activeWorkspaceView === 'viral'
@@ -336,7 +382,7 @@ export default function AnalysisResult({
         {activeWorkspaceView === 'dossier' && (
           <div className="space-y-6 animate-in fade-in duration-200">
             {/* Quick Media & Creator Intelligence KPI Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 via-purple-950/30 to-amber-950/30 border border-slate-800 shadow-md">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-purple-950/30 to-amber-950/30 border border-slate-800 shadow-md">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
                   <Clock className="w-4 h-4" />
@@ -347,14 +393,34 @@ export default function AnalysisResult({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-2 sm:border-x sm:border-slate-800 sm:px-3.5">
-                <div className="flex items-center gap-2.5">
+              {/* AI PODCAST QUICK LAUNCHER */}
+              <div className="flex items-center justify-between gap-2 sm:border-l sm:border-slate-800 sm:pl-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
+                    <Headphones className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">AI Podkast</span>
+                    <span className="text-xs font-black text-cyan-300">2 Boshlovchi</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveWorkspaceView('podcast')}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 transition-all shrink-0 cursor-pointer"
+                >
+                  {language === 'en' ? 'Play →' : language === 'ru' ? 'Слушать →' : "Tinglash →"}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 sm:border-l sm:border-slate-800 sm:pl-3">
+                <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
                     <Flame className="w-4 h-4 animate-pulse" />
                   </div>
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400 block">{language === 'en' ? 'Viral Moments' : language === 'ru' ? 'Вирусные моменты' : 'Viral Lahzalar'}</span>
-                    <span className="text-xs font-black text-amber-300">{language === 'en' ? 'Shorts / Reels Ready' : language === 'ru' ? 'Shorts / Reels готовы' : 'Shorts / Reels Tayyor'}</span>
+                    <span className="text-xs font-black text-amber-300">{language === 'en' ? 'Shorts Ready' : language === 'ru' ? 'Shorts готовы' : 'Shorts Tayyor'}</span>
                   </div>
                 </div>
                 <button
@@ -366,14 +432,14 @@ export default function AnalysisResult({
                 </button>
               </div>
 
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
+              <div className="flex items-center justify-between gap-2 sm:border-l sm:border-slate-800 sm:pl-3">
+                <div className="flex items-center gap-2">
                   <div className="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
                     <Send className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Telegram & Karusel</span>
-                    <span className="text-xs font-black text-sky-300">1-Click SMM Post</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">SMM Post</span>
+                    <span className="text-xs font-black text-sky-300">Telegram</span>
                   </div>
                 </div>
                 <button
@@ -466,39 +532,70 @@ export default function AnalysisResult({
             {/* TAB CONTENT 2: EXECUTIVE SUMMARY & STRUCTURED DOSSIER */}
             {dossierTab === 'summary' && (
               <div className="space-y-6 animate-in fade-in duration-200">
-                {/* Voice player specifically reading executive summary */}
-                <div className="p-4 rounded-2xl bg-[#070d1d] border border-slate-800">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Volume2 className="w-4 h-4 text-cyan-400" />
-                      <span className="text-xs font-bold text-slate-200">
-                        {language === 'en' ? 'Listen to AI Executive Summary' : language === 'ru' ? 'Слушать резюме ИИ голосом' : "AI Xulosasini Ovozli Tinglash"}
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-mono text-slate-400">
-                      Web Speech TTS
+                {/* Executive Summary Card with 1-Click Direct Audio Playback */}
+                <div className="p-5 sm:p-6 rounded-3xl bg-[#090e1d] border border-slate-800 space-y-3.5 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <span>📝</span>
+                      <span>{t.analyzer.summaryTitle}</span>
+                    </h4>
+
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                      AI Xulosa
                     </span>
                   </div>
-                  <VoiceReader
-                    items={[]}
-                    summaryText={result.summary}
-                    targetLang={language === 'ru' ? 'ru' : language === 'en' ? 'en' : 'uz'}
-                  />
-                </div>
 
-                {/* Executive Summary Paragraphs */}
-                <div className="space-y-2">
-                  <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <span>📝</span>
-                    <span>{t.analyzer.summaryTitle}</span>
-                  </h4>
                   <div className="border-l-2 border-blue-500/80 pl-4 py-1">
                     <p className="text-sm text-slate-100 leading-relaxed whitespace-pre-line font-medium">
                       {result.summary}
                     </p>
                   </div>
+
+                  {/* PROMINENT DIRECT 1-CLICK VOICE BUTTON UNDER TEXT (USER REQUESTED) */}
+                  <div className="pt-3 flex flex-wrap items-center gap-3 border-t border-slate-800/80">
+                    <button
+                      type="button"
+                      onClick={toggleSpeakSummary}
+                      className={`px-5 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 cursor-pointer shadow-lg ${
+                        isSummarySpeaking
+                          ? 'bg-amber-500 text-slate-950 shadow-amber-500/30 animate-pulse'
+                          : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-cyan-500/25'
+                      }`}
+                    >
+                      {isSummarySpeaking ? (
+                        <>
+                          <Pause className="w-4 h-4 fill-current" />
+                          <span>{language === 'en' ? 'Stop Voice' : language === 'ru' ? 'Остановить озвучку' : "Ovozni To'xtatish"}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 className="w-4 h-4" />
+                          <span>{language === 'en' ? 'Listen Aloud in Uzbek' : language === 'ru' ? 'Слушать резюме голосом' : "Ovozda Tinglash (AI O'zbek tilida gapirib beradi)"}</span>
+                        </>
+                      )}
+                    </button>
+
+                    {isSummarySpeaking && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1 bg-cyan-400 rounded-full animate-bounce h-3" />
+                        <span className="w-1 bg-blue-500 rounded-full animate-bounce h-5" />
+                        <span className="w-1 bg-cyan-300 rounded-full animate-bounce h-2" />
+                        <span className="text-xs font-mono text-cyan-300 ml-1">AI gapirmoqda...</span>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveWorkspaceView('podcast')}
+                      className="px-4 py-2 rounded-2xl text-xs font-bold bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 transition-all flex items-center gap-1.5 ml-auto cursor-pointer"
+                    >
+                      <Headphones className="w-3.5 h-3.5 text-purple-400" />
+                      <span>{language === 'en' ? '2-Host AI Podcast (NotebookLM) →' : language === 'ru' ? '2 Ведущих ИИ Подкаст →' : "2 Boshlovchili AI Podkast →"}</span>
+                    </button>
+                  </div>
+
                   {result.agenda && (
-                    <div className="mt-3 pt-3 border-t border-slate-800/60 text-xs text-slate-400">
+                    <div className="mt-2 pt-3 border-t border-slate-800/60 text-xs text-slate-400">
                       <strong className="text-slate-300 block mb-1">
                         {language === 'en' ? 'Topics Chronology:' : language === 'ru' ? 'Хронология тем:' : 'Mavzular xronologiyasi:'}
                       </strong>
@@ -957,6 +1054,13 @@ export default function AnalysisResult({
             )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ================= VIEW: AI DEEP DIVE PODCAST (NOTEBOOKLM STYLE) ================= */}
+        {activeWorkspaceView === 'podcast' && (
+          <div className="pt-2 animate-in fade-in duration-200">
+            <AudioPodcastOverview result={result} />
           </div>
         )}
 

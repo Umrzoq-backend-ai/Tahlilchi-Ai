@@ -79,6 +79,12 @@ QAT'IY VA MUHIM TALABLAR:
        "hashtags": ["#foydali", "#motivatsiya", "#tahlil"]
      }
    ]
+5. "podcast_dialogue" - NOTEBOOKLM AUDIO OVERVIEW USLUBIDAGI 2 TA AI BOSHLОVCHI DIALOGI:
+   Materialning asosiy mohiyati va qiziqarli tomonlarini 2 ta boshlovchi (Aziz - qiziquvchan boshlovchi, va Madina - chuqur tahlilchi ekspert) o'rtasidagi xuddi jonli radiopodkastdek erkin, samimiy va oddiy tushunarli dialogi sifatida tuzing (kamida 6-8 ta replika):
+   [
+     {"speaker": "Aziz", "role": "Boshlovchi", "text": "Salom barchaga! Bugungi materialimizdagi eng muhim g'oya haqida gaplashamiz. Madina, muallif aynan nimani tushuntirmoqchi bo'lgan?"},
+     {"speaker": "Madina", "role": "Ekspert", "text": "Salom Aziz! Juda dolzarb mavzu. Bu yerda asosiy e'tibor..."}
+   ]
 `;
 
   switch (mode) {

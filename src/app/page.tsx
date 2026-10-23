@@ -103,61 +103,64 @@ export default function HomePage() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* 1. Hero Section with Rich Multi-Layer Gradient Ambient Glow */}
-      <section className="relative pt-20 pb-20 md:pt-28 md:pb-28 px-4 sm:px-8 text-center max-w-5xl mx-auto flex flex-col items-center">
+      <section className="relative pt-12 pb-16 md:pt-20 md:pb-24 px-4 sm:px-8 text-center max-w-5xl mx-auto flex flex-col items-center">
         {/* Soft Eye-Friendly Background Mesh Lights */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-r from-blue-600/20 via-indigo-600/15 to-cyan-500/15 blur-[130px] rounded-full pointer-events-none -z-10" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-blue-600/25 via-indigo-600/20 to-cyan-500/20 blur-[140px] rounded-full pointer-events-none -z-10" />
 
-        {/* Small Pill Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0e172a]/90 border border-slate-700/80 text-xs font-semibold text-slate-300 mb-8 shadow-lg shadow-black/30 backdrop-blur-md">
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          <span>{t.hero.badge}</span>
-        </div>
-
-        {/* Big H1 Title with Subtle Eye-Comfortable Gradient */}
-        <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-tight leading-[1.1] mb-6">
-          {t.hero.title1}
-          <br className="hidden sm:inline" />
-          <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent">
-            {t.hero.titleHighlight}
-          </span>
-        </h1>
-
-        {/* Subtitle */}
-        <p className="text-base sm:text-lg text-slate-400 max-w-2xl leading-relaxed mb-10">
-          {t.hero.subtitle}
-        </p>
-
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-          <Link
-            href="/analyzer"
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-sm bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-xl shadow-blue-600/30 hover:shadow-cyan-500/40 transition-all flex items-center justify-center gap-2 group cursor-pointer"
-          >
-            <span>{t.hero.launch}</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-
-          <a
-            href="#features"
-            className="w-full sm:w-auto px-8 py-4 rounded-2xl font-semibold text-sm bg-[#0e1628]/90 hover:bg-[#131e36] text-slate-200 border border-slate-700/80 hover:border-slate-600 transition-all cursor-pointer backdrop-blur-md"
-          >
-            {t.hero.seeHow}
-          </a>
-        </div>
-
-        {/* Trust Badges Bar (No account, 100% free, fast) */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-5 sm:gap-8 text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-slate-300 font-medium">{t.hero.trustNoAccount}</span>
+        {/* Hero Glassmorphism Container Card */}
+        <div className="relative w-full max-w-4xl p-8 sm:p-14 md:p-16 rounded-[2.5rem] bg-gradient-to-b from-[#0e172a]/85 via-[#0b1222]/85 to-[#070c18]/90 border border-slate-700/60 shadow-[0_25px_80px_-15px_rgba(0,0,0,0.85)] backdrop-blur-2xl flex flex-col items-center text-center">
+          {/* Small Pill Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0e172a]/90 border border-slate-700/80 text-xs font-semibold text-slate-300 mb-8 shadow-lg shadow-black/30 backdrop-blur-md">
+            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{t.hero.badge}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-slate-300 font-medium">{t.hero.trustFree}</span>
+
+          {/* Big H1 Title with Subtle Eye-Comfortable Gradient */}
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-tight leading-[1.1] mb-6">
+            {t.hero.title1}
+            <br className="hidden sm:inline" />{' '}
+            <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent">
+              {t.hero.titleHighlight}
+            </span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-base sm:text-lg text-slate-400 max-w-2xl leading-relaxed mb-10">
+            {t.hero.subtitle}
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
+            <Link
+              href="/analyzer"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl font-bold text-sm bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-xl shadow-blue-600/30 hover:shadow-cyan-500/40 transition-all flex items-center justify-center gap-2 group cursor-pointer"
+            >
+              <span>{t.hero.launch}</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+
+            <a
+              href="#features"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl font-semibold text-sm bg-[#0e1628]/90 hover:bg-[#131e36] text-slate-200 border border-slate-700/80 hover:border-slate-600 transition-all cursor-pointer backdrop-blur-md"
+            >
+              {t.hero.seeHow}
+            </a>
           </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-slate-300 font-medium">{t.hero.trustTranscript}</span>
+
+          {/* Trust Badges Bar (No account, 100% free, fast) */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-5 sm:gap-8 text-xs text-slate-400 pt-6 border-t border-slate-800/80 w-full">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="text-slate-300 font-medium">{t.hero.trustNoAccount}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="text-slate-300 font-medium">{t.hero.trustFree}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="text-slate-300 font-medium">{t.hero.trustTranscript}</span>
+            </div>
           </div>
         </div>
       </section>

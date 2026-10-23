@@ -120,7 +120,7 @@ export default function SynchronizedTranscript({
     }
   }, [activeSpokenId]);
 
-  // Single line speak
+  // Single line speak with accurate language and voice detection
   const speakSingleLine = (text: string, idx: number) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -131,6 +131,19 @@ export default function SynchronizedTranscript({
       setSingleSpeakingIdx(idx);
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 1.0;
+
+      const voices = window.speechSynthesis.getVoices() || [];
+      if (displayMode === 'original') {
+        const enVoice = voices.find(v => v.lang.startsWith('en'));
+        if (enVoice) u.voice = enVoice;
+        u.lang = 'en-US';
+      } else {
+        // Uzbek translation
+        const uzVoice = voices.find(v => v.lang.startsWith('uz') || v.lang.startsWith('tr') || v.lang.startsWith('ru'));
+        if (uzVoice) u.voice = uzVoice;
+        u.lang = uzVoice?.lang || 'tr-TR';
+      }
+
       u.onend = () => setSingleSpeakingIdx(null);
       u.onerror = () => setSingleSpeakingIdx(null);
       window.speechSynthesis.speak(u);

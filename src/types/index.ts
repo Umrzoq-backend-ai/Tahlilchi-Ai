@@ -86,6 +86,12 @@ export interface AudioTimelineItem {
   translation?: string;
 }
 
+export interface PodcastDialogueItem {
+  speaker: 'Aziz' | 'Madina' | string;
+  role: 'Boshlovchi' | 'Ekspert' | string;
+  text: string;
+}
+
 export interface ViralMoment {
   start: string;
   end: string;
@@ -161,6 +167,9 @@ export interface AnalysisResponse {
   document_title?: string;
   key_theses?: string[];
   findings?: { title: string; detail: string; page?: string }[];
+
+  // AI Deep Dive Podcast (NotebookLM Audio Overview style)
+  podcast_dialogue?: PodcastDialogueItem[];
 
   // Global & Technical
   transcript?: string;
