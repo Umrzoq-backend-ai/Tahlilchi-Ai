@@ -98,8 +98,18 @@ export async function analyzeMediaDirectly(params: ClientAnalyzeParams): Promise
     parts.push({
       text: fileInstruction,
     });
+  } else if (params.videoUrl) {
+    parts.push({
+      file_data: {
+        file_uri: params.videoUrl,
+        mime_type: 'video/*',
+      },
+    });
+    parts.push({
+      text: `Ushbu YouTube videoni to'liq multimodal formatda (kadrlar va audio trekini birgalikda) tahlil qiling. Unda gapirilgan barcha gaplarni audio_timeline va transcriptda daqiqama-daqiqa so'zma-so'z ko'rsatib, to'liq JSON formatida javob bering.`,
+    });
   } else {
-    throw new Error('No media file provided for direct client analysis.');
+    throw new Error('Tahlil uchun media fayl yoki video havola kiritilishi shart.');
   }
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;

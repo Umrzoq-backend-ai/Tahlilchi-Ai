@@ -54,6 +54,7 @@ Har bir rejimda videodagi muhim joylarga vaqt belgilarini (timestamps) '02:15' y
 ${options?.customPrompt ? `Foydalanuvchining maxsus talabi: ${options.customPrompt}` : ''}
 
 QAT'IY VA MUHIM TALABLAR:
+0. HECH QACHON "videoning davomiyligi 0 soniya", "video ochilmadi" yoki "ichki mazmuni mavjud emas" deb aytmang! Berilgan material (video kadrlar, audio trek, transkript va havola) ichidagi haqiqiy gaplar va faktlar asosida to'liq, chuqur va boy tahlil bering.
 1. "audio_timeline" - ENG ASOSIY QISM:
    Videoda/audioda aytilgan BARCHA gaplarni boshidan oxirigacha (hatto video 1-2 soatlik bo'lsa ham) to'liq xronologik ketma-ketlikda transkript qiling:
    - "start" va "end": vaqt oralig'i (masalan: "00:00", "01:30", "15:45")

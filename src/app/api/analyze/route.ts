@@ -324,33 +324,38 @@ export async function POST(req: NextRequest) {
         console.warn('Failed to fetch YouTube details:', err);
       }
 
-      const videoContext = videoMeta
-        ? `
+      // 1. Pass the native YouTube video directly to Gemini Multimodal Engine
+      contents.push({
+        fileData: {
+          fileUri: videoUrl,
+          mimeType: 'video/*',
+        },
+      });
+
+      const videoTitle = videoMeta?.title || 'YouTube Video';
+      const videoAuthor = videoMeta?.author || 'YouTube Muallifi';
+      const hasValidDuration = videoMeta?.duration && videoMeta.duration > 0;
+      const durationInfo = hasValidDuration ? `${videoMeta.durationFormatted} (${videoMeta.duration} soniya)` : 'Videoni to\'liq boshidan oxirigacha tahlil qiling';
+
+      const videoContext = `
 ==================================================
-TAHLIL QILINADIGAN ANIQ YOUTUBE VIDEO MA'LUMOTLARI:
-- Haqiqiy sarlavha (Title): "${videoMeta.title}"
-- Kanal / Muallif (Creator): ${videoMeta.author}
-- Davomiyligi (Duration): ${videoMeta.durationFormatted} (${videoMeta.duration} soniya)
-- Kalit mavzular: ${videoMeta.keywords?.slice(0, 10).join(', ') || 'Noma\'lum'}
+TAHLIL QILINADIGAN ANIQ YOUTUBE VIDEO:
+- Haqiqiy sarlavha (Title): "${videoTitle}"
+- Muallif / Kanal (Creator): ${videoAuthor}
+- Davomiyligi: ${durationInfo}
+${videoMeta?.keywords?.length ? `- Kalit mavzular: ${videoMeta.keywords.slice(0, 10).join(', ')}` : ''}
 
-- Video haqida to'liq rasmiy tavsif (Description):
-${videoMeta.description || 'Tavsif mavjud emas.'}
+${videoMeta?.description ? `- Video haqida rasmiy tavsif:\n${videoMeta.description.slice(0, 4000)}` : ''}
 
-${
-  videoMeta.hasTranscript
-    ? `- Video ichida aytilgan to'liq nutq va subtitrlar (Transkript):\n${videoMeta.transcript.slice(0, 250000)}`
-    : `- Izoh: Ushbu videoda ochiq subtitr mavjud emas. Tahlilni yuqoridagi video nomi, tavsifidagi texnik parametrlar, da'volar va faktlarga 100% asoslab bajaring.`
-}
+${videoMeta?.hasTranscript && videoMeta?.transcript ? `- Spiker nutqi va subtitrlar:\n${videoMeta.transcript.slice(0, 150000)}` : ''}
 ==================================================
 
-QAT'IY TALAB:
-1. Siz FAQAT VA FAQAT ushbu "${videoMeta.title}" videosini tahlil qilishingiz shart!
-2. Videoda aytilgan barcha nutq va suhbatlarni to'liq qamrab oling. "audio_timeline" massivida videodagi barcha muhim gaplarni xronologik tartibda so'zma-so'z berib, tarjimasini taqdim eting!
-3. Mutlaqo begona mavzuni aralashtirmang!
-4. Barcha sarlavha, xulosalar, fakt-tekshiruvlar, baholar va vaqt belgilari (timestamps) to'g'ridan-to'g'ri ushbu video mazmuniga tegishli bo'lsin.
-5. Vaqt belgilarini (timestamps) videoning davomiyligi (${videoMeta.durationFormatted}) doirasida mantiqiy ko'rsating.
-`
-        : `Tahlil qilinadigan video havolasi: ${videoUrl}`;
+QAT'IY KO'RSATMALAR:
+1. Ushbu YouTube videoni to'liq multimodal formatda (kadrlar va audio ovozini birgalikda) tahlil qiling.
+2. Videoda aytilgan barcha gaplarni, suhbatlarni va asosiy fikrlarni "audio_timeline" massivida xronologik tartibda so'zma-so'z daqiqama-daqiqa (timestamps bilan) yozing.
+3. Foydalanuvchi videoni ko'rmasdan ham to'liq tushunishi uchun "summary" qismida KENG QAMROVLI, CHUQUR va MUKAMMAL konspekt-xulosa bering.
+4. HECH QACHON "videoning davomiyligi 0 soniya", "video ochilmadi" yoki "video mazmuni yo'q" deb aytmang! Videoning haqiqiy audiosi va kadrlaridan foydalanib boy tahlil taqdim eting.
+5. Faqat va faqat so'ralgan JSON formatida javob bering.`;
 
       contents.push({
         text: `${systemInstruction}\n\n${videoContext}\n\nFaqat so'ralgan JSON formatida javob bering.`,

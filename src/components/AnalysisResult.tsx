@@ -47,7 +47,8 @@ interface AnalysisResultProps {
   onSeek?: (timeStr: string) => void;
 }
 
-type WorkspaceView = 'dossier' | 'podcast' | 'transcript' | 'viral' | 'repurpose' | 'timeline' | 'export';
+type MainTab = 'summary' | 'podcast' | 'transcript';
+type ExtraTool = 'viral' | 'repurpose' | 'timeline' | 'export' | null;
 
 export default function AnalysisResult({
   result,
@@ -60,8 +61,8 @@ export default function AnalysisResult({
   const [copied, setCopied] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [activeWorkspaceView, setActiveWorkspaceView] = useState<WorkspaceView>('dossier');
-  const [dossierTab, setDossierTab] = useState<'transcript' | 'summary'>('transcript');
+  const [activeTab, setActiveTab] = useState<MainTab>('summary');
+  const [extraTool, setExtraTool] = useState<ExtraTool>(null);
   const [isSummarySpeaking, setIsSummarySpeaking] = useState(false);
 
   // Stop any active speech on unmount
@@ -272,266 +273,186 @@ export default function AnalysisResult({
           </div>
         </div>
 
-        {/* ================= WORKSPACE TOOLBAR (SaaS STARTUP ENGINE) ================= */}
-        <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-[#070b16] rounded-2xl border border-slate-800/90">
-          <button
-            type="button"
-            onClick={() => setActiveWorkspaceView('dossier')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeWorkspaceView === 'dossier'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>{t.analyzer.tabDossier}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveWorkspaceView('podcast')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeWorkspaceView === 'podcast'
-                ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-600/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Headphones className="w-3.5 h-3.5 text-cyan-400" />
-            <span>AI Podkast</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-400/20 text-cyan-300 font-mono border border-cyan-400/30">
-              NotebookLM
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveWorkspaceView('viral')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeWorkspaceView === 'viral'
-                ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 text-white shadow-lg shadow-rose-600/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span>{t.analyzer.tabViral}</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-rose-500/20 text-rose-300 font-mono border border-rose-500/30">
-              {language === 'en' ? 'AI Clip' : language === 'ru' ? 'ИИ Клип' : 'AI Klip'}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveWorkspaceView('repurpose')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeWorkspaceView === 'repurpose'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Send className="w-3.5 h-3.5 text-sky-400" />
-            <span>{t.analyzer.tabRepurpose}</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-sky-400/20 text-sky-300 font-mono">
-              {language === 'en' ? 'New' : language === 'ru' ? 'Новое' : 'Yangi'}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveWorkspaceView('transcript')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeWorkspaceView === 'transcript'
-                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-cyan-600/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{t.analyzer.tabTranscript}</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-400/20 text-cyan-300 font-mono border border-cyan-400/30">
-              {language === 'en' ? 'Speech & Translation' : language === 'ru' ? 'Речь и перевод' : 'Nutq & Tarjima'}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveWorkspaceView('timeline')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeWorkspaceView === 'timeline'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Activity className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{t.analyzer.tabTimeline}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveWorkspaceView('export')}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeWorkspaceView === 'export'
-                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
-          >
-            <Share2 className="w-3.5 h-3.5 text-purple-400" />
-            <span>{t.analyzer.tabExport}</span>
-          </button>
-        </div>
-
-        {/* ================= VIEW 1: MASTER DOSSIER (DEFAULT) ================= */}
-        {activeWorkspaceView === 'dossier' && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            {/* Quick Media & Creator Intelligence KPI Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-purple-950/30 to-amber-950/30 border border-slate-800 shadow-md">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">{t.analyzer.timeSaved}</span>
-                  <span className="text-xs font-black text-white">{language === 'en' ? '~95% Time Saved' : language === 'ru' ? '~95% времени сэкономлено' : '~95% Vaqt Tejaldi'}</span>
-                </div>
-              </div>
-
-              {/* AI PODCAST QUICK LAUNCHER */}
-              <div className="flex items-center justify-between gap-2 sm:border-l sm:border-slate-800 sm:pl-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
-                    <Headphones className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">AI Podkast</span>
-                    <span className="text-xs font-black text-cyan-300">2 Boshlovchi</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveWorkspaceView('podcast')}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 transition-all shrink-0 cursor-pointer"
-                >
-                  {language === 'en' ? 'Play →' : language === 'ru' ? 'Слушать →' : "Tinglash →"}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between gap-2 sm:border-l sm:border-slate-800 sm:pl-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-                    <Flame className="w-4 h-4 animate-pulse" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">{language === 'en' ? 'Viral Moments' : language === 'ru' ? 'Вирусные моменты' : 'Viral Lahzalar'}</span>
-                    <span className="text-xs font-black text-amber-300">{language === 'en' ? 'Shorts Ready' : language === 'ru' ? 'Shorts готовы' : 'Shorts Tayyor'}</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveWorkspaceView('viral')}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all shrink-0 cursor-pointer"
-                >
-                  {language === 'en' ? 'View →' : language === 'ru' ? 'Смотреть →' : "Ko'rish →"}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between gap-2 sm:border-l sm:border-slate-800 sm:pl-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
-                    <Send className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block">SMM Post</span>
-                    <span className="text-xs font-black text-sky-300">Telegram</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveWorkspaceView('repurpose')}
-                  className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/40 transition-all shrink-0 cursor-pointer"
-                >
-                  {language === 'en' ? 'Open →' : language === 'ru' ? 'Открыть →' : 'Ochish →'}
-                </button>
-              </div>
-            </div>
-
-            {/* PRIMARY WORKSPACE CONTROLLER: TO'LIQ TRANSKRIPT (ASOSIY) VS AI XULOSA */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 bg-[#060b18] rounded-2xl border border-slate-800 shadow-inner">
+        {/* ================= SIMPLIFIED 3-TAB NAVIGATION (NOTEBOOKLM GRADE) ================= */}
+        <div className="space-y-3">
+          {/* Main 3 Tabs */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-1.5 bg-[#060b18] rounded-2xl border border-slate-800 shadow-inner">
+            <div className="flex items-center gap-1.5 flex-1">
+              {/* Tab 1: Asosiy Xulosa */}
               <button
                 type="button"
-                onClick={() => setDossierTab('transcript')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
-                  dossierTab === 'transcript'
+                onClick={() => {
+                  setActiveTab('summary');
+                  setExtraTool(null);
+                }}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  activeTab === 'summary' && !extraTool
                     ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white shadow-lg shadow-cyan-600/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                 }`}
               >
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>{language === 'en' ? '📝 Executive Summary' : language === 'ru' ? '📝 Краткое резюме' : '📝 Asosiy Xulosa'}</span>
+              </button>
+
+              {/* Tab 2: AI Podkast (NotebookLM) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('podcast');
+                  setExtraTool(null);
+                }}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  activeTab === 'podcast' && !extraTool
+                    ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-600/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                }`}
+              >
+                <Headphones className="w-4 h-4 text-cyan-300" />
+                <span>{language === 'en' ? '🎙️ AI Podcast' : language === 'ru' ? '🎙️ ИИ Подкаст' : '🎙️ AI Podkast'}</span>
+                <span className="hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-400/30">
+                  NotebookLM
+                </span>
+              </button>
+
+              {/* Tab 3: To'liq Transkript */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('transcript');
+                  setExtraTool(null);
+                }}
+                className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  activeTab === 'transcript' && !extraTool
+                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-cyan-600/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                }`}
+              >
                 <Volume2 className="w-4 h-4 text-cyan-300" />
-                <span>
-                  {language === 'en'
-                    ? '🎙️ Full Verbatim Transcript & Voice Reader'
-                    : language === 'ru'
-                    ? '🎙️ Полный транскрипт речи и ИИ озвучка'
-                    : "🎙️ To'liq Nutq Transkripti va AI Ovoz"}
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 font-mono border border-cyan-400/30">
-                  {result.audio_timeline?.length ? `${result.audio_timeline.length} gap` : 'Asosiy'}
-                </span>
+                <span>{language === 'en' ? '📜 Transcript' : language === 'ru' ? '📜 Транскрипт' : "📜 To'liq Transkript"}</span>
+                {result.audio_timeline?.length ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
+                    {result.audio_timeline.length} {language === 'en' ? 'lines' : language === 'ru' ? 'строк' : 'gap'}
+                  </span>
+                ) : null}
+              </button>
+            </div>
+          </div>
+
+          {/* Secondary Tools Bar: Viral Clips, SMM, Timeline, Export */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-xl bg-[#080d1a] border border-slate-800/80 text-xs">
+            <span className="text-slate-400 font-semibold text-[11px] flex items-center gap-1.5 pl-1">
+              <span>⚡ {language === 'en' ? 'Creator & Growth Tools:' : language === 'ru' ? 'Инструменты для блогеров:' : 'Bloger & Biznes Vositalari:'}</span>
+            </span>
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setExtraTool(extraTool === 'viral' ? null : 'viral')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                  extraTool === 'viral'
+                    ? 'bg-rose-500 text-white border-rose-400 shadow-md'
+                    : 'bg-slate-800/70 hover:bg-slate-800 text-slate-300 border-slate-700'
+                }`}
+              >
+                <Flame className="w-3.5 h-3.5 text-amber-400" />
+                <span>Viral Shorts</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setDossierTab('summary')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
-                  dossierTab === 'summary'
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                onClick={() => setExtraTool(extraTool === 'repurpose' ? null : 'repurpose')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                  extraTool === 'repurpose'
+                    ? 'bg-sky-500 text-white border-sky-400 shadow-md'
+                    : 'bg-slate-800/70 hover:bg-slate-800 text-slate-300 border-slate-700'
                 }`}
               >
-                <Sparkles className="w-4 h-4 text-amber-400" />
+                <Send className="w-3.5 h-3.5 text-sky-400" />
+                <span>SMM Post</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setExtraTool(extraTool === 'timeline' ? null : 'timeline')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                  extraTool === 'timeline'
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-md'
+                    : 'bg-slate-800/70 hover:bg-slate-800 text-slate-300 border-slate-700'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Timeline</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setExtraTool(extraTool === 'export' ? null : 'export')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                  extraTool === 'export'
+                    ? 'bg-purple-600 text-white border-purple-500 shadow-md'
+                    : 'bg-slate-800/70 hover:bg-slate-800 text-slate-300 border-slate-700'
+                }`}
+              >
+                <Share2 className="w-3.5 h-3.5 text-purple-400" />
+                <span>{language === 'en' ? 'Share & Export' : language === 'ru' ? 'Экспорт' : 'Eksport'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Extra Tool Panel (renders when an extra tool is clicked) */}
+        {extraTool && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#080d1c] border border-cyan-500/30 space-y-3 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <span className="text-xs font-bold text-cyan-300 flex items-center gap-2">
+                <span>⚡</span>
                 <span>
-                  {language === 'en'
-                    ? '📝 AI Executive Summary & Insights'
-                    : language === 'ru'
-                    ? '📝 Краткое резюме и аналитика ИИ'
-                    : "📝 AI Qisqa Tahliliy Xulosasi"}
+                  {extraTool === 'viral' && 'Viral Shorts & Reels AI Clips'}
+                  {extraTool === 'repurpose' && 'SMM & Content Repurposing'}
+                  {extraTool === 'timeline' && 'Visual Timeline & Sentiment Analysis'}
+                  {extraTool === 'export' && 'Share & Export Options'}
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-mono">
-                  {language === 'en' ? 'Quick summary' : language === 'ru' ? 'Быстро' : 'Konspekt'}
-                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setExtraTool(null)}
+                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+              >
+                ✕ {language === 'en' ? 'Close' : language === 'ru' ? 'Закрыть' : 'Yopish'}
               </button>
             </div>
 
-            {/* TAB CONTENT 1: FULL VERBATIM TRANSCRIPT & SYNCHRONIZED VOICE PLAYER */}
-            {dossierTab === 'transcript' && (
-              <div className="space-y-4 animate-in fade-in duration-200">
-                <div className="p-3.5 rounded-2xl bg-blue-950/20 border border-blue-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-base">💡</span>
-                    <p className="text-slate-300 leading-relaxed">
-                      {language === 'en'
-                        ? '1-2 hour video/audio speech is transcribed verbatim below. If you prefer a quick overview, switch to the Executive Summary.'
-                        : language === 'ru'
-                        ? 'Речь из видео/аудио транскрибирована дословно. Если вы хотите прочитать только ключевую суть, переключитесь на Резюме.'
-                        : "Videoda aytilgan barcha gaplar to'liq va so'zma-so'z keltirilgan. Agar matn uzun bo'lsa, AI Qisqa Xulosasidan foydalanishingiz mumkin."}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setDossierTab('summary')}
-                    className="px-3.5 py-1.5 rounded-xl font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition-all shrink-0 cursor-pointer self-start sm:self-auto"
-                  >
-                    {language === 'en' ? 'Read AI Summary →' : language === 'ru' ? 'Читать резюме ИИ →' : "AI Xulosasini O'qish →"}
-                  </button>
-                </div>
-
-                <SynchronizedTranscript
-                  result={result}
-                  onSeek={onSeek}
-                />
-              </div>
+            {extraTool === 'viral' && (
+              <ViralClipsExtractor result={result} videoUrl={videoUrl} onSeek={onSeek} />
             )}
+            {extraTool === 'repurpose' && (
+              <ContentRepurposer result={result} videoTitle={videoTitle} videoUrl={videoUrl} />
+            )}
+            {extraTool === 'timeline' && (
+              <VisualTimelineChart result={result} onSeek={onSeek} />
+            )}
+            {extraTool === 'export' && (
+              <ShareExportModal result={result} videoUrl={videoUrl} />
+            )}
+          </div>
+        )}
 
-            {/* TAB CONTENT 2: EXECUTIVE SUMMARY & STRUCTURED DOSSIER */}
-            {dossierTab === 'summary' && (
-              <div className="space-y-6 animate-in fade-in duration-200">
+        {/* ================= PRIMARY CONTENT: 3 MAIN TABS ================= */}
+        {!extraTool && activeTab === 'podcast' && (
+          <div className="pt-2 animate-in fade-in duration-200">
+            <AudioPodcastOverview result={result} />
+          </div>
+        )}
+
+        {!extraTool && activeTab === 'transcript' && (
+          <div className="pt-2 animate-in fade-in duration-200">
+            <SynchronizedTranscript result={result} onSeek={onSeek} />
+          </div>
+        )}
+
+        {!extraTool && activeTab === 'summary' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
                 {/* Executive Summary Card with 1-Click Direct Audio Playback */}
                 <div className="p-5 sm:p-6 rounded-3xl bg-[#090e1d] border border-slate-800 space-y-3.5 shadow-xl">
                   <div className="flex items-center justify-between">
@@ -586,7 +507,10 @@ export default function AnalysisResult({
 
                     <button
                       type="button"
-                      onClick={() => setActiveWorkspaceView('podcast')}
+                      onClick={() => {
+                        setActiveTab('podcast');
+                        setExtraTool(null);
+                      }}
                       className="px-4 py-2 rounded-2xl text-xs font-bold bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 transition-all flex items-center gap-1.5 ml-auto cursor-pointer"
                     >
                       <Headphones className="w-3.5 h-3.5 text-purple-400" />
@@ -1043,7 +967,10 @@ export default function AnalysisResult({
 
                   <button
                     type="button"
-                    onClick={() => setDossierTab('transcript')}
+                    onClick={() => {
+                      setActiveTab('transcript');
+                      setExtraTool(null);
+                    }}
                     className="px-3 py-1.5 rounded-xl font-bold bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 transition-all flex items-center gap-1.5"
                   >
                     <Volume2 className="w-3.5 h-3.5" />
@@ -1052,70 +979,8 @@ export default function AnalysisResult({
                 </div>
               </div>
             )}
-              </div>
-            )}
           </div>
         )}
-
-        {/* ================= VIEW: AI DEEP DIVE PODCAST (NOTEBOOKLM STYLE) ================= */}
-        {activeWorkspaceView === 'podcast' && (
-          <div className="pt-2 animate-in fade-in duration-200">
-            <AudioPodcastOverview result={result} />
-          </div>
-        )}
-
-        {/* ================= VIEW: VIRAL SHORTS & REELS ================= */}
-        {activeWorkspaceView === 'viral' && (
-          <div className="pt-2 animate-in fade-in duration-200">
-            <ViralClipsExtractor
-              result={result}
-              videoUrl={videoUrl}
-              onSeek={onSeek}
-            />
-          </div>
-        )}
-
-        {/* ================= VIEW 2: SMM & BUSINESS REPURPOSING ================= */}
-        {activeWorkspaceView === 'repurpose' && (
-          <div className="pt-2 animate-in fade-in duration-200">
-            <ContentRepurposer
-              result={result}
-              videoTitle={videoTitle}
-              videoUrl={videoUrl}
-            />
-          </div>
-        )}
-
-        {/* ================= VIEW 3: SYNCHRONIZED TRANSCRIPT ================= */}
-        {activeWorkspaceView === 'transcript' && (
-          <div className="pt-2 animate-in fade-in duration-200">
-            <SynchronizedTranscript
-              result={result}
-              onSeek={onSeek}
-            />
-          </div>
-        )}
-
-        {/* ================= VIEW 4: VISUAL TIMELINE & SENTIMENT ================= */}
-        {activeWorkspaceView === 'timeline' && (
-          <div className="pt-2 animate-in fade-in duration-200">
-            <VisualTimelineChart
-              result={result}
-              onSeek={onSeek}
-            />
-          </div>
-        )}
-
-        {/* ================= VIEW 5: SHARE & EXPORT ================= */}
-        {activeWorkspaceView === 'export' && (
-          <div className="pt-2 animate-in fade-in duration-200">
-            <ShareExportModal
-              result={result}
-              videoUrl={videoUrl}
-            />
-          </div>
-        )}
-
       </div>
 
       {/* 2. VIDEODAGI VAQT BELGILARI (Foydalanuvchi iltimosiga ko'ra pasda bir bosishda o'tish uchun) */}
