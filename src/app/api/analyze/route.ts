@@ -328,7 +328,7 @@ export async function POST(req: NextRequest) {
       contents.push({
         fileData: {
           fileUri: videoUrl,
-          mimeType: 'video/*',
+          mimeType: 'video/mp4',
         },
       });
 

@@ -1,6 +1,7 @@
 # 🧠 Tahlilchi AI — Milliy Multimodal Sun’iy Intellekt Platformasi
 
-[![Live Demo](https://img.shields.io/badge/Demo-Vercel%20Production-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://tahlilchi-ai-ruddy.vercel.app)
+[![Live Production](https://img.shields.io/badge/Production-tahilchi--ai.uz-0070f3?style=for-the-badge&logo=vercel&logoColor=white)](https://tahilchi-ai.uz)
+[![Demo Mirror](https://img.shields.io/badge/Mirror-Vercel%20App-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://tahlilchi-ai-ruddy.vercel.app)
 [![Next.js](https://img.shields.io/badge/Next.js%2015-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React%2019-20232a?style=for-the-badge&logo=react&logoColor=61dafb)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007acc?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -9,7 +10,8 @@
 > **Soatlab videolarni ko‘rish shart emas!**  
 > Tahlilchi AI — video, audio yozuvlar va PDF hujjatlardan soniyalar ichida aniq xulosalar, qadamma-qadam vaqt belgilari (timestamps) hamda to‘liq transkript ajratib beruvchi zamonaviy sun’iy intellekt platformasi.
 
-🌐 **Jonli sayt:** [https://tahlilchi-ai-ruddy.vercel.app](https://tahlilchi-ai-ruddy.vercel.app)
+🌐 **Rasmiy domen:** [https://tahilchi-ai.uz](https://tahilchi-ai.uz) (va [https://www.tahilchi-ai.uz](https://www.tahilchi-ai.uz))  
+🔗 **Vercel Mirror:** [https://tahlilchi-ai-ruddy.vercel.app](https://tahlilchi-ai-ruddy.vercel.app)
 
 ---
 

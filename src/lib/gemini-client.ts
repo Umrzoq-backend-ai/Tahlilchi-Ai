@@ -102,7 +102,7 @@ export async function analyzeMediaDirectly(params: ClientAnalyzeParams): Promise
     parts.push({
       file_data: {
         file_uri: params.videoUrl,
-        mime_type: 'video/*',
+        mime_type: 'video/mp4',
       },
     });
     parts.push({

@@ -6,6 +6,9 @@ import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://tahilchi-ai.uz'),
+  alternates: {
+    canonical: 'https://tahilchi-ai.uz',
+  },
   title: 'Tahlilchi AI — Video, Ovoz va PDF Tahlili | Ro‘yxatdan o‘tishsiz',
   description:
     'Soatlab videolarni ko‘rish shart emas! Istalgan YouTube video, audio yozuv yoki PDF hujjatdan bir zumda eng muhim xulosalar, daqiqama-daqiqa vaqt belgilari (timestamps) va to‘liq o‘zbekcha transkriptni oling. Akkaunt talab qilinmaydi.',
