@@ -29,7 +29,7 @@ export default function ShareExportModal({
   const [copiedSummary, setCopiedSummary] = useState(false);
 
   const title = result.metadata?.title || result.headline || result.document_title || 'Tahliliy Hisobot';
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : 'https://tahlilchi.uz';
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : 'https://tahilchi-ai.uz';
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareUrl);
