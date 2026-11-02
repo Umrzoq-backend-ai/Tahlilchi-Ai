@@ -59,7 +59,8 @@ export default function AnalysisResult({
   const [copied, setCopied] = useState(false);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [activeTab, setActiveTab] = useState<MainTab>('summary');
+  const [activeTab, setActiveTab] = useState<MainTab>('transcript');
+  const [showSummaryPeek, setShowSummaryPeek] = useState(true);
   const [extraTool, setExtraTool] = useState<ExtraTool>(null);
   const [isSummarySpeaking, setIsSummarySpeaking] = useState(false);
   const summaryAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -296,7 +297,29 @@ export default function AnalysisResult({
           {/* Main 2 Tabs */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-1.5 bg-[#060b18] rounded-2xl border border-slate-800 shadow-inner">
             <div className="flex items-center gap-2 flex-1">
-              {/* Tab 1: Asosiy Xulosa */}
+              {/* Tab 1: Videoda Gapirilgan To'liq Matn (Default) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('transcript');
+                  setExtraTool(null);
+                }}
+                className={`flex-1 py-3 px-5 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                  activeTab === 'transcript' && !extraTool
+                    ? 'bg-gradient-to-r from-cyan-400 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-600/30'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                }`}
+              >
+                <Volume2 className="w-4 h-4 text-cyan-300" />
+                <span>{language === 'en' ? '🎙️ Full Video Speech (00:00 to End)' : language === 'ru' ? '🎙️ Полный текст видео (с 00:00 до конца)' : "🎙️ Videoda Gapirilgan To'liq Matn (00:00 dan oxirigacha)"}</span>
+                {result.audio_timeline?.length ? (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-900 text-cyan-300 border border-cyan-500/40 font-mono">
+                    {result.audio_timeline.length} gap
+                  </span>
+                ) : null}
+              </button>
+
+              {/* Tab 2: Asosiy Xulosa & Tahlil */}
               <button
                 type="button"
                 onClick={() => {
@@ -310,29 +333,7 @@ export default function AnalysisResult({
                 }`}
               >
                 <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>{language === 'en' ? '📝 Executive Summary' : language === 'ru' ? '📝 Краткое резюме' : '📝 Asosiy Xulosa'}</span>
-              </button>
-
-              {/* Tab 2: To'liq Transkript & Ovoz */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('transcript');
-                  setExtraTool(null);
-                }}
-                className={`flex-1 py-3 px-5 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeTab === 'transcript' && !extraTool
-                    ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                }`}
-              >
-                <Volume2 className="w-4 h-4 text-cyan-300" />
-                <span>{language === 'en' ? '🎧 Full Transcript & Voice' : language === 'ru' ? '🎧 Транскрипт и Озвучка' : "🎧 To'liq Matn & Ovoz"}</span>
-                {result.audio_timeline?.length ? (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
-                    {result.audio_timeline.length} {language === 'en' ? 'lines' : language === 'ru' ? 'строк' : 'gap'}
-                  </span>
-                ) : null}
+                <span>{language === 'en' ? '📝 Executive Summary & Insights' : language === 'ru' ? '📝 Аналитическое резюме' : '📝 Asosiy Xulosa & Tahlil'}</span>
               </button>
             </div>
           </div>
@@ -438,7 +439,57 @@ export default function AnalysisResult({
 
         {/* ================= PRIMARY CONTENT: 2 MAIN TABS ================= */}
         {!extraTool && activeTab === 'transcript' && (
-          <div className="pt-2 animate-in fade-in duration-200">
+          <div className="space-y-5 pt-2 animate-in fade-in duration-200">
+            {/* Quick AI Summary Preview Card (Peek) */}
+            {result.summary && (
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#090f22] border border-slate-800 shadow-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                      <span>💡</span>
+                      <span>Qisqacha AI Xulosasi (Tezkor Mazmun)</span>
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-cyan-300 border border-blue-500/20">
+                      30 Soniyalik Konspekt
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={toggleSpeakSummary}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        isSummarySpeaking
+                          ? 'bg-amber-500 text-slate-950 shadow-md animate-pulse'
+                          : 'bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30'
+                      }`}
+                      title="Xulosani ovozda eshitish"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>{isSummarySpeaking ? "To'xtatish" : "Xulosani Tinglash"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowSummaryPeek(!showSummaryPeek)}
+                      className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-lg bg-slate-800/80 cursor-pointer"
+                    >
+                      {showSummaryPeek ? "Yashirish ▲" : "Ko'rsatish ▼"}
+                    </button>
+                  </div>
+                </div>
+
+                {showSummaryPeek && (
+                  <div className="border-l-2 border-cyan-500/80 pl-3.5 py-0.5 animate-in fade-in duration-200">
+                    <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
+                      {result.summary}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Standout Full Spoken Text & Audio Dubbing Dossier */}
             <SynchronizedTranscript result={result} onSeek={onSeek} />
           </div>
         )}
