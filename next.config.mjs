@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   devIndicators: false,
+  serverExternalPackages: ['msedge-tts', 'ws', 'bufferutil'],
   async headers() {
     return [
       {

@@ -1,3 +1,5 @@
+process.env.WS_NO_BUFFER_UTIL = '1';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 
