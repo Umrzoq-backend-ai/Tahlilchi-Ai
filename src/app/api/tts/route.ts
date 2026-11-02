@@ -1,0 +1,176 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+// Mapping of languages and voices to Microsoft Edge Neural voices
+const VOICE_MAP: Record<string, { female: string; male: string }> = {
+  uz: {
+    female: 'uz-UZ-MadinaNeural',
+    male: 'uz-UZ-SardorNeural',
+  },
+  ru: {
+    female: 'ru-RU-SvetlanaNeural',
+    male: 'ru-RU-DmitryNeural',
+  },
+  en: {
+    female: 'en-US-JennyNeural',
+    male: 'en-US-GuyNeural',
+  },
+};
+
+// In-memory LRU-like cache for generated audio chunks (max 100 items)
+const audioCache = new Map<string, Buffer>();
+const MAX_CACHE_SIZE = 100;
+
+function getCacheKey(text: string, voice: string, rate: string): string {
+  return `${voice}_${rate}_${text.trim()}`;
+}
+
+async function synthesizeWithEdge(text: string, voiceName: string, rate: string = '+0%'): Promise<Buffer> {
+  const cacheKey = getCacheKey(text, voiceName, rate);
+  const cached = audioCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const tts = new MsEdgeTTS();
+  await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+
+  // Clean text and limit single chunk length safely
+  const cleanText = text.trim().slice(0, 800);
+  const { audioStream } = tts.toStream(cleanText, { rate });
+
+  const chunks: Buffer[] = [];
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      try { tts.close(); } catch (_) {}
+      reject(new Error('TTS generation timed out'));
+    }, 12000);
+
+    audioStream.on('data', (chunk: Buffer) => {
+      chunks.push(chunk);
+    });
+
+    audioStream.on('end', () => {
+      clearTimeout(timeout);
+      try { tts.close(); } catch (_) {}
+      const fullBuffer = Buffer.concat(chunks);
+
+      if (audioCache.size >= MAX_CACHE_SIZE) {
+        const firstKey = audioCache.keys().next().value;
+        if (firstKey) audioCache.delete(firstKey);
+      }
+      audioCache.set(cacheKey, fullBuffer);
+
+      resolve(fullBuffer);
+    });
+
+    audioStream.on('error', (err) => {
+      clearTimeout(timeout);
+      try { tts.close(); } catch (_) {}
+      reject(err);
+    });
+  });
+}
+
+// Fallback using Google Translate TTS if Edge TTS encounters network blocks
+async function fallbackGoogleTranslate(text: string, lang: string): Promise<Buffer | null> {
+  try {
+    const targetLang = lang === 'uz' ? 'uz' : lang === 'ru' ? 'ru' : 'en';
+    const encoded = encodeURIComponent(text.trim().slice(0, 200));
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=gtx&tl=${targetLang}&q=${encoded}`;
+
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!res.ok) return null;
+    const arrayBuffer = await res.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch (e) {
+    console.warn('[TTS] Google fallback failed:', e);
+    return null;
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const text = searchParams.get('text') || '';
+  const lang = (searchParams.get('lang') || 'uz').toLowerCase();
+  const gender = (searchParams.get('gender') || 'female').toLowerCase() as 'female' | 'male';
+  const customVoice = searchParams.get('voice');
+  const rate = searchParams.get('rate') || '+0%';
+
+  if (!text.trim()) {
+    return NextResponse.json({ error: 'Text parameter is required' }, { status: 400 });
+  }
+
+  const voiceMap = VOICE_MAP[lang] || VOICE_MAP['uz'];
+  const voiceName = customVoice || (gender === 'male' ? voiceMap.male : voiceMap.female);
+
+  try {
+    const audioBuffer = await synthesizeWithEdge(text, voiceName, rate);
+    return new Response(new Uint8Array(audioBuffer), {
+      status: 200,
+      headers: {
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': audioBuffer.length.toString(),
+        'Cache-Control': 'public, max-age=86400, s-maxage=86400, immutable',
+      },
+    });
+  } catch (err: any) {
+    console.warn(`[TTS] Edge TTS error for "${text.slice(0, 30)}...":`, err?.message || err);
+
+    // Fallback to Google Translate TTS
+    const fallbackBuffer = await fallbackGoogleTranslate(text, lang);
+    if (fallbackBuffer) {
+      return new Response(new Uint8Array(fallbackBuffer), {
+        status: 200,
+        headers: {
+          'Content-Type': 'audio/mpeg',
+          'Content-Length': fallbackBuffer.length.toString(),
+          'Cache-Control': 'public, max-age=86400',
+        },
+      });
+    }
+
+    return NextResponse.json(
+      { error: 'TTS audio synthesis failed', details: err?.message || String(err) },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { text, lang = 'uz', gender = 'female', voice, rate = '+0%' } = body;
+
+    if (!text || !text.trim()) {
+      return NextResponse.json({ error: 'Text parameter is required' }, { status: 400 });
+    }
+
+    const voiceMap = VOICE_MAP[lang.toLowerCase()] || VOICE_MAP['uz'];
+    const voiceName = voice || (gender === 'male' ? voiceMap.male : voiceMap.female);
+
+    const audioBuffer = await synthesizeWithEdge(text, voiceName, rate);
+    return new Response(new Uint8Array(audioBuffer), {
+      status: 200,
+      headers: {
+        'Content-Type': 'audio/mpeg',
+        'Content-Length': audioBuffer.length.toString(),
+        'Cache-Control': 'public, max-age=86400, s-maxage=86400, immutable',
+      },
+    });
+  } catch (err: any) {
+    console.error('[TTS POST] Error:', err);
+    return NextResponse.json(
+      { error: 'TTS generation failed', details: err?.message || String(err) },
+      { status: 500 }
+    );
+  }
+}

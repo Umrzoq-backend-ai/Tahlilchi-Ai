@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   CheckCircle2,
   AlertCircle,
@@ -36,8 +36,6 @@ import VisualTimelineChart from './VisualTimelineChart';
 import SynchronizedTranscript from './SynchronizedTranscript';
 import ShareExportModal from './ShareExportModal';
 import ViralClipsExtractor from './ViralClipsExtractor';
-import VoiceReader from './VoiceReader';
-import AudioPodcastOverview from './AudioPodcastOverview';
 
 interface AnalysisResultProps {
   result: AnalysisResponse | null;
@@ -47,7 +45,7 @@ interface AnalysisResultProps {
   onSeek?: (timeStr: string) => void;
 }
 
-type MainTab = 'summary' | 'podcast' | 'transcript';
+type MainTab = 'summary' | 'transcript';
 type ExtraTool = 'viral' | 'repurpose' | 'timeline' | 'export' | null;
 
 export default function AnalysisResult({
@@ -64,31 +62,51 @@ export default function AnalysisResult({
   const [activeTab, setActiveTab] = useState<MainTab>('summary');
   const [extraTool, setExtraTool] = useState<ExtraTool>(null);
   const [isSummarySpeaking, setIsSummarySpeaking] = useState(false);
+  const summaryAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Stop any active speech on unmount
   useEffect(() => {
     return () => {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
+      if (summaryAudioRef.current) {
+        summaryAudioRef.current.pause();
+        summaryAudioRef.current = null;
       }
     };
   }, []);
 
   const toggleSpeakSummary = () => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window) || !result?.summary) return;
+    if (!result?.summary) return;
     if (isSummarySpeaking) {
-      window.speechSynthesis.cancel();
+      if (summaryAudioRef.current) {
+        summaryAudioRef.current.pause();
+        summaryAudioRef.current = null;
+      }
       setIsSummarySpeaking(false);
       return;
     }
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(result.summary);
-    u.rate = 1.0;
-    u.lang = language === 'ru' ? 'ru-RU' : language === 'en' ? 'en-US' : 'tr-TR';
-    u.onend = () => setIsSummarySpeaking(false);
-    u.onerror = () => setIsSummarySpeaking(false);
-    setIsSummarySpeaking(true);
-    window.speechSynthesis.speak(u);
+
+    const ttsLang = language === 'ru' ? 'ru' : language === 'en' ? 'en' : 'uz';
+    const textToSpeak = result.summary.slice(0, 800);
+    const audioUrl = `/api/tts?text=${encodeURIComponent(textToSpeak)}&lang=${ttsLang}&gender=female`;
+
+    const audio = new Audio(audioUrl);
+    summaryAudioRef.current = audio;
+
+    audio.onended = () => {
+      setIsSummarySpeaking(false);
+    };
+
+    audio.onerror = (e) => {
+      console.warn('[Summary Audio] Error:', e);
+      setIsSummarySpeaking(false);
+    };
+
+    audio.play().then(() => {
+      setIsSummarySpeaking(true);
+    }).catch((err) => {
+      console.warn('[Summary Audio] Play failed:', err);
+      setIsSummarySpeaking(false);
+    });
   };
 
   if (loading) {
@@ -273,11 +291,11 @@ export default function AnalysisResult({
           </div>
         </div>
 
-        {/* ================= SIMPLIFIED 3-TAB NAVIGATION (NOTEBOOKLM GRADE) ================= */}
+        {/* ================= SIMPLIFIED 2-TAB NAVIGATION ================= */}
         <div className="space-y-3">
-          {/* Main 3 Tabs */}
+          {/* Main 2 Tabs */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-1.5 bg-[#060b18] rounded-2xl border border-slate-800 shadow-inner">
-            <div className="flex items-center gap-1.5 flex-1">
+            <div className="flex items-center gap-2 flex-1">
               {/* Tab 1: Asosiy Xulosa */}
               <button
                 type="button"
@@ -285,7 +303,7 @@ export default function AnalysisResult({
                   setActiveTab('summary');
                   setExtraTool(null);
                 }}
-                className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                className={`flex-1 py-3 px-5 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   activeTab === 'summary' && !extraTool
                     ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white shadow-lg shadow-cyan-600/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
@@ -295,41 +313,21 @@ export default function AnalysisResult({
                 <span>{language === 'en' ? '📝 Executive Summary' : language === 'ru' ? '📝 Краткое резюме' : '📝 Asosiy Xulosa'}</span>
               </button>
 
-              {/* Tab 2: AI Podkast (NotebookLM) */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('podcast');
-                  setExtraTool(null);
-                }}
-                className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeTab === 'podcast' && !extraTool
-                    ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-600/30'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                }`}
-              >
-                <Headphones className="w-4 h-4 text-cyan-300" />
-                <span>{language === 'en' ? '🎙️ AI Podcast' : language === 'ru' ? '🎙️ ИИ Подкаст' : '🎙️ AI Podkast'}</span>
-                <span className="hidden sm:inline-block text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 border border-cyan-400/30">
-                  NotebookLM
-                </span>
-              </button>
-
-              {/* Tab 3: To'liq Transkript */}
+              {/* Tab 2: To'liq Transkript & Ovoz */}
               <button
                 type="button"
                 onClick={() => {
                   setActiveTab('transcript');
                   setExtraTool(null);
                 }}
-                className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                className={`flex-1 py-3 px-5 rounded-xl text-xs sm:text-sm font-extrabold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                   activeTab === 'transcript' && !extraTool
-                    ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-cyan-600/30'
+                    ? 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white shadow-lg shadow-cyan-600/30'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
                 }`}
               >
                 <Volume2 className="w-4 h-4 text-cyan-300" />
-                <span>{language === 'en' ? '📜 Transcript' : language === 'ru' ? '📜 Транскрипт' : "📜 To'liq Transkript"}</span>
+                <span>{language === 'en' ? '🎧 Full Transcript & Voice' : language === 'ru' ? '🎧 Транскрипт и Озвучка' : "🎧 To'liq Matn & Ovoz"}</span>
                 {result.audio_timeline?.length ? (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono">
                     {result.audio_timeline.length} {language === 'en' ? 'lines' : language === 'ru' ? 'строк' : 'gap'}
@@ -438,13 +436,7 @@ export default function AnalysisResult({
           </div>
         )}
 
-        {/* ================= PRIMARY CONTENT: 3 MAIN TABS ================= */}
-        {!extraTool && activeTab === 'podcast' && (
-          <div className="pt-2 animate-in fade-in duration-200">
-            <AudioPodcastOverview result={result} />
-          </div>
-        )}
-
+        {/* ================= PRIMARY CONTENT: 2 MAIN TABS ================= */}
         {!extraTool && activeTab === 'transcript' && (
           <div className="pt-2 animate-in fade-in duration-200">
             <SynchronizedTranscript result={result} onSeek={onSeek} />
@@ -508,13 +500,13 @@ export default function AnalysisResult({
                     <button
                       type="button"
                       onClick={() => {
-                        setActiveTab('podcast');
+                        setActiveTab('transcript');
                         setExtraTool(null);
                       }}
-                      className="px-4 py-2 rounded-2xl text-xs font-bold bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 transition-all flex items-center gap-1.5 ml-auto cursor-pointer"
+                      className="px-4 py-2 rounded-2xl text-xs font-bold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition-all flex items-center gap-1.5 ml-auto cursor-pointer"
                     >
-                      <Headphones className="w-3.5 h-3.5 text-purple-400" />
-                      <span>{language === 'en' ? '2-Host AI Podcast (NotebookLM) →' : language === 'ru' ? '2 Ведущих ИИ Подкаст →' : "2 Boshlovchili AI Podkast →"}</span>
+                      <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{language === 'en' ? 'Full Speech & Voice Dubbing →' : language === 'ru' ? 'Полный текст и озвучка →' : "To'liq Nutq va Ovozli Dublyaj →"}</span>
                     </button>
                   </div>
 

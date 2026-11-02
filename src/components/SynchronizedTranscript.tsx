@@ -1,27 +1,34 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search,
   Copy,
   CheckCircle2,
   Play,
+  Pause,
+  Square,
+  SkipForward,
+  SkipBack,
   Download,
   Languages,
   FileText,
   Subtitles,
   Sparkles,
   Volume2,
+  VolumeX,
+  User,
+  Radio,
 } from 'lucide-react';
 import { AnalysisResponse, AudioTimelineItem } from '@/types';
-import VoiceReader, { VoiceReaderItem } from './VoiceReader';
 
 interface SynchronizedTranscriptProps {
   result: AnalysisResponse;
   onSeek?: (timeStr: string) => void;
 }
 
-interface TranscriptLine {
+export interface TranscriptLine {
+  id: number;
   time: string;
   endTime?: string;
   speaker?: string;
@@ -31,23 +38,18 @@ interface TranscriptLine {
 }
 
 type TranscriptDisplayMode = 'uzbek' | 'original' | 'parallel';
+type VoiceLanguage = 'uz' | 'ru' | 'en';
+type VoiceGender = 'female' | 'male';
 
 export default function SynchronizedTranscript({
   result,
   onSeek,
 }: SynchronizedTranscriptProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
-  const [copiedAll, setCopiedAll] = useState(false);
-  const [displayMode, setDisplayMode] = useState<TranscriptDisplayMode>('uzbek');
-  const [activeSpokenId, setActiveSpokenId] = useState<number | null>(null);
-  const [singleSpeakingIdx, setSingleSpeakingIdx] = useState<number | null>(null);
-
-  // Parse lines from audio_timeline, raw transcript, or fallback
+  // Parsing lines from result
   const lines: TranscriptLine[] = useMemo(() => {
-    // 1. Primary: Rich audio_timeline with original text and translation
     if (result.audio_timeline && result.audio_timeline.length > 0) {
-      return result.audio_timeline.map((item) => ({
+      return result.audio_timeline.map((item, idx) => ({
+        id: idx,
         time: item.start || '00:00',
         endTime: item.end,
         speaker: item.speaker || 'Spiker',
@@ -57,17 +59,18 @@ export default function SynchronizedTranscript({
       }));
     }
 
-    // 2. Secondary: If raw transcript string has [MM:SS] lines
     if (result.transcript) {
       const parsed: TranscriptLine[] = [];
       const regex = /\[(\d{1,2}:\d{2}(?::\d{2})?)\]\s*(?:([^:\n\r]+):\s*)?([^[\n\r]+)/g;
       let match;
+      let idx = 0;
       while ((match = regex.exec(result.transcript)) !== null) {
         const time = match[1];
         const speaker = match[2]?.trim() || undefined;
         const text = match[3]?.trim() || '';
         if (text) {
           parsed.push({
+            id: idx++,
             time,
             speaker,
             originalText: text,
@@ -78,9 +81,9 @@ export default function SynchronizedTranscript({
       if (parsed.length > 0) return parsed;
     }
 
-    // 3. Fallback: result.timestamps
     if (result.timestamps && result.timestamps.length > 0) {
-      return result.timestamps.map((t) => ({
+      return result.timestamps.map((t, idx) => ({
+        id: idx,
         time: t.time,
         speaker: 'Spiker',
         originalText: t.text,
@@ -88,9 +91,9 @@ export default function SynchronizedTranscript({
       }));
     }
 
-    // 4. Fallback default
     return [
       {
+        id: 0,
         time: '00:00',
         speaker: 'Spiker',
         originalText: result.summary || 'Video boshlanishi',
@@ -99,70 +102,206 @@ export default function SynchronizedTranscript({
     ];
   }, [result]);
 
-  // VoiceReader Items mapping
-  const voiceReaderItems: VoiceReaderItem[] = useMemo(() => {
-    return lines.map((l, idx) => ({
-      id: idx,
-      time: l.time,
-      speaker: l.speaker,
-      text: l.translatedText,
-      originalText: l.originalText,
-    }));
-  }, [lines]);
+  // Audio Playback State
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [activeLineIdx, setActiveLineIdx] = useState<number | null>(null);
+  const [voiceLang, setVoiceLang] = useState<VoiceLanguage>('uz');
+  const [gender, setGender] = useState<VoiceGender>('female');
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
 
-  // Auto-scroll to active spoken line
+  // UI state
+  const [displayMode, setDisplayMode] = useState<TranscriptDisplayMode>('uzbek');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isPlayingRef = useRef(false);
+  const activeLineIdxRef = useRef<number | null>(null);
+  const preloadedAudiosRef = useRef<Map<number, HTMLAudioElement>>(new Map());
+
+  isPlayingRef.current = isPlaying;
+  activeLineIdxRef.current = activeLineIdx;
+
+  // Build text to read for a given line based on selected voiceLang
+  const getTextForLine = (line: TranscriptLine, lang: VoiceLanguage): string => {
+    if (lang === 'uz') {
+      return line.translatedText || line.originalText;
+    }
+    return line.originalText || line.translatedText;
+  };
+
+  // Build API TTS URL
+  const getAudioUrl = (text: string, lang: VoiceLanguage, g: VoiceGender, speed: number): string => {
+    const rateParam = speed === 1.25 ? '+25%' : speed === 1.5 ? '+50%' : '+0%';
+    const clean = encodeURIComponent(text.trim());
+    return `/api/tts?text=${clean}&lang=${lang}&gender=${g}&rate=${encodeURIComponent(rateParam)}`;
+  };
+
+  // Preload next line audio
+  const preloadNext = (nextIdx: number) => {
+    if (nextIdx < 0 || nextIdx >= lines.length) return;
+    const nextLine = lines[nextIdx];
+    const text = getTextForLine(nextLine, voiceLang);
+    if (!text) return;
+    const url = getAudioUrl(text, voiceLang, gender, playbackSpeed);
+
+    if (!preloadedAudiosRef.current.has(nextIdx)) {
+      const a = new Audio();
+      a.preload = 'auto';
+      a.src = url;
+      preloadedAudiosRef.current.set(nextIdx, a);
+    }
+  };
+
+  // Stop playback cleanly
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+    }
+    setIsPlaying(false);
+    setIsLoadingAudio(false);
+  };
+
+  // Clean cleanup on unmount
   useEffect(() => {
-    if (activeSpokenId !== null) {
-      const el = document.getElementById(`transcript-line-${activeSpokenId}`);
+    return () => {
+      stopAudio();
+    };
+  }, []);
+
+  // Auto-scroll to active line
+  useEffect(() => {
+    if (activeLineIdx !== null) {
+      const el = document.getElementById(`transcript-line-${activeLineIdx}`);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
-  }, [activeSpokenId]);
+  }, [activeLineIdx]);
 
-  // Single line speak with accurate language and voice detection
-  const speakSingleLine = (text: string, idx: number) => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      if (singleSpeakingIdx === idx) {
-        setSingleSpeakingIdx(null);
-        return;
+  // Play a specific line
+  const playLine = async (idx: number) => {
+    if (idx < 0 || idx >= lines.length) {
+      stopAudio();
+      setActiveLineIdx(null);
+      return;
+    }
+
+    const line = lines[idx];
+    const textToSpeak = getTextForLine(line, voiceLang);
+
+    if (!textToSpeak.trim()) {
+      playLine(idx + 1);
+      return;
+    }
+
+    setActiveLineIdx(idx);
+    setIsPlaying(true);
+    setIsLoadingAudio(true);
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+
+    const audioUrl = getAudioUrl(textToSpeak, voiceLang, gender, playbackSpeed);
+    const audio = preloadedAudiosRef.current.get(idx) || new Audio(audioUrl);
+    audio.playbackRate = playbackSpeed;
+    audioRef.current = audio;
+
+    audio.oncanplay = () => {
+      setIsLoadingAudio(false);
+    };
+
+    audio.onended = () => {
+      if (isPlayingRef.current) {
+        // Move to next line
+        playLine(idx + 1);
       }
-      setSingleSpeakingIdx(idx);
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 1.0;
+    };
 
-      const voices = window.speechSynthesis.getVoices() || [];
-      if (displayMode === 'original') {
-        const enVoice = voices.find(v => v.lang.startsWith('en'));
-        if (enVoice) u.voice = enVoice;
-        u.lang = 'en-US';
+    audio.onerror = (e) => {
+      console.warn(`[TTS Player] Audio playback error on line ${idx}:`, e);
+      setIsLoadingAudio(false);
+      // Fallback: move to next line after brief delay
+      if (isPlayingRef.current && idx + 1 < lines.length) {
+        setTimeout(() => playLine(idx + 1), 600);
       } else {
-        // Uzbek translation
-        const uzVoice = voices.find(v => v.lang.startsWith('uz') || v.lang.startsWith('tr') || v.lang.startsWith('ru'));
-        if (uzVoice) u.voice = uzVoice;
-        u.lang = uzVoice?.lang || 'tr-TR';
+        stopAudio();
       }
+    };
 
-      u.onend = () => setSingleSpeakingIdx(null);
-      u.onerror = () => setSingleSpeakingIdx(null);
-      window.speechSynthesis.speak(u);
+    try {
+      await audio.play();
+      setIsLoadingAudio(false);
+      // Preload next line
+      preloadNext(idx + 1);
+    } catch (playErr) {
+      console.warn('[TTS Player] Autoplay interrupted:', playErr);
+      setIsLoadingAudio(false);
     }
   };
 
-  // Filter lines by search query
-  const filteredLines = useMemo(() => {
-    if (!searchQuery.trim()) return lines;
-    const q = searchQuery.toLowerCase();
-    return lines.filter(
-      (l) =>
-        l.translatedText.toLowerCase().includes(q) ||
-        l.originalText.toLowerCase().includes(q) ||
-        l.time.includes(q) ||
-        l.speaker?.toLowerCase().includes(q)
-    );
-  }, [lines, searchQuery]);
+  const handleTogglePlay = () => {
+    if (isPlaying) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      setIsPlaying(false);
+    } else {
+      if (audioRef.current && audioRef.current.src && activeLineIdx !== null) {
+        audioRef.current.play();
+        setIsPlaying(true);
+      } else {
+        playLine(activeLineIdx !== null ? activeLineIdx : 0);
+      }
+    }
+  };
 
+  const handleNextLine = () => {
+    const nextIdx = (activeLineIdx ?? -1) + 1;
+    if (nextIdx < lines.length) {
+      playLine(nextIdx);
+    }
+  };
+
+  const handlePrevLine = () => {
+    const prevIdx = (activeLineIdx ?? 1) - 1;
+    if (prevIdx >= 0) {
+      playLine(prevIdx);
+    }
+  };
+
+  // Change language: stop current audio and change voice
+  const handleLanguageChange = (newLang: VoiceLanguage) => {
+    setVoiceLang(newLang);
+    preloadedAudiosRef.current.clear();
+    if (isPlaying && activeLineIdx !== null) {
+      // Re-trigger with new language
+      setTimeout(() => playLine(activeLineIdx), 50);
+    }
+  };
+
+  // Change gender: Madina vs Sardor
+  const handleGenderChange = (newGender: VoiceGender) => {
+    setGender(newGender);
+    preloadedAudiosRef.current.clear();
+    if (isPlaying && activeLineIdx !== null) {
+      setTimeout(() => playLine(activeLineIdx), 50);
+    }
+  };
+
+  // Speed change
+  const handleSpeedChange = (speed: number) => {
+    setPlaybackSpeed(speed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = speed;
+    }
+  };
+
+  // Copy quote
   const handleCopyQuote = (line: TranscriptLine, idx: number) => {
     const textToCopy =
       displayMode === 'original'
@@ -178,17 +317,8 @@ export default function SynchronizedTranscript({
 
   const handleCopyAll = () => {
     const fullText = lines
-      .map((l) => {
-        if (displayMode === 'original') {
-          return `[${l.time}] ${l.speaker ? `${l.speaker}: ` : ''}${l.originalText}`;
-        }
-        if (displayMode === 'parallel') {
-          return `[${l.time}] ${l.speaker ? `${l.speaker}: ` : ''}\nAsl: ${l.originalText}\nTarjima: ${l.translatedText}\n`;
-        }
-        return `[${l.time}] ${l.speaker ? `${l.speaker}: ` : ''}${l.translatedText}`;
-      })
+      .map((l) => `[${l.time}] ${l.speaker ? `${l.speaker}: ` : ''}${l.translatedText}`)
       .join('\n\n');
-
     navigator.clipboard.writeText(fullText);
     setCopiedAll(true);
     setTimeout(() => setCopiedAll(false), 2000);
@@ -213,7 +343,7 @@ export default function SynchronizedTranscript({
       let totalSec = 0;
       if (parts.length === 3) totalSec = parts[0] * 3600 + parts[1] * 60 + parts[2];
       else if (parts.length === 2) totalSec = parts[0] * 60 + parts[1];
-      if (isEnd) totalSec += 4; // Default segment length if no end time
+      if (isEnd) totalSec += 4;
 
       const h = Math.floor(totalSec / 3600);
       const m = Math.floor((totalSec % 3600) / 60);
@@ -238,25 +368,242 @@ export default function SynchronizedTranscript({
     URL.revokeObjectURL(url);
   };
 
+  // Filter lines by search query
+  const filteredLines = useMemo(() => {
+    if (!searchQuery.trim()) return lines;
+    const q = searchQuery.toLowerCase();
+    return lines.filter(
+      (l) =>
+        l.translatedText.toLowerCase().includes(q) ||
+        l.originalText.toLowerCase().includes(q) ||
+        l.time.includes(q) ||
+        l.speaker?.toLowerCase().includes(q)
+    );
+  }, [lines, searchQuery]);
+
+  const activeLine = activeLineIdx !== null && lines[activeLineIdx] ? lines[activeLineIdx] : null;
+  const progressPercent = activeLineIdx !== null ? Math.round(((activeLineIdx + 1) / lines.length) * 100) : 0;
+
   return (
     <div className="space-y-4">
-      {/* 1. EMBEDDED AI VOICE READER & DUBLYAJ PLAYER */}
-      <VoiceReader
-        items={voiceReaderItems}
-        summaryText={result.summary}
-        currentActiveId={activeSpokenId}
-        onActiveItemChange={setActiveSpokenId}
-      />
+      {/* ================= 1. YAGONA VA QULAY AI OVOZLI PLEER (UNIFIED NEURAL PLAYER) ================= */}
+      <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-[#0c1329] via-[#090f20] to-[#060b18] border border-blue-500/30 shadow-2xl space-y-4">
+        {/* Top bar: Header & Status */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/25 shrink-0">
+              <Volume2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-black text-white tracking-tight">
+                  Jonli Ovozli Tinglash & Dublyaj
+                </h4>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                  AI Ravon Ovoz (100% Tabiiy)
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                Matnni o&apos;qishga vaqtingiz bo&apos;lmasa, videodagi barcha gaplarni ravon tilda eshiting
+              </p>
+            </div>
+          </div>
 
-      {/* 2. Top Controls Bar */}
-      <div className="p-4 bg-[#070b16] rounded-3xl border border-slate-800 space-y-3 shadow-xl">
+          {/* Language Selector (Uzbek, Russian, English) */}
+          <div className="flex items-center gap-1.5 p-1 bg-[#040814] rounded-2xl border border-slate-800 shrink-0 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={() => handleLanguageChange('uz')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                voiceLang === 'uz'
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-md shadow-cyan-500/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>🇺🇿 O&apos;zbek</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLanguageChange('ru')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                voiceLang === 'ru'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>🇷🇺 Русский</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLanguageChange('en')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                voiceLang === 'en'
+                  ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-md shadow-cyan-500/30'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>🇬🇧 English</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Master Player Controls */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+          {/* Main Controls: Play, Stop, Prev, Next */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrevLine}
+              className="p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+              title="Oldingi gap"
+            >
+              <SkipBack className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={handleTogglePlay}
+              className={`px-6 py-3.5 rounded-2xl font-black text-xs sm:text-sm flex items-center gap-2.5 transition-all shadow-xl cursor-pointer ${
+                isPlaying
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/30'
+                  : 'bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/30'
+              }`}
+            >
+              {isLoadingAudio ? (
+                <>
+                  <Sparkles className="w-4 h-4 animate-spin text-white" />
+                  <span>Yuklanmoqda...</span>
+                </>
+              ) : isPlaying ? (
+                <>
+                  <Pause className="w-4 h-4 fill-current" />
+                  <span>To&apos;xtatish</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-current" />
+                  <span>Ovozda Tinglash</span>
+                </>
+              )}
+            </button>
+
+            {isPlaying && (
+              <button
+                type="button"
+                onClick={stopAudio}
+                className="p-3 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 transition-all cursor-pointer"
+                title="Butunlay to'xtatish"
+              >
+                <Square className="w-4 h-4 fill-current" />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={handleNextLine}
+              className="p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+              title="Keyingi gap"
+            >
+              <SkipForward className="w-4 h-4" />
+            </button>
+
+            {/* Voice Gender Toggle (Madina vs Sardor) */}
+            <div className="flex items-center gap-1 p-1 bg-[#040814] rounded-2xl border border-slate-800 ml-2">
+              <button
+                type="button"
+                onClick={() => handleGenderChange('female')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all ${
+                  gender === 'female'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Madina (Ayol ovozi)"
+              >
+                <span>👩 Madina</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGenderChange('male')}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1 cursor-pointer transition-all ${
+                  gender === 'male'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Sardor (Erkak ovozi)"
+              >
+                <span>👨 Sardor</span>
+              </button>
+            </div>
+
+            {/* Speed Options */}
+            <div className="hidden sm:flex items-center gap-1 p-1 bg-[#040814] rounded-2xl border border-slate-800 ml-1">
+              {[1.0, 1.25, 1.5].map((spd) => (
+                <button
+                  key={spd}
+                  type="button"
+                  onClick={() => handleSpeedChange(spd)}
+                  className={`px-2 py-1 rounded-xl text-[11px] font-bold cursor-pointer transition-all ${
+                    playbackSpeed === spd
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {spd}x
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Currently Spoken Preview + Progress */}
+          <div className="flex-1 min-w-0 bg-[#050914] rounded-2xl p-3 border border-slate-800/90 flex flex-col justify-center">
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="font-mono text-cyan-400 font-bold flex items-center gap-2 truncate">
+                {activeLine ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping shrink-0" />
+                    <span>[{activeLine.time}]</span>
+                    {activeLine.speaker && (
+                      <span className="text-slate-300 uppercase tracking-wider text-[11px] bg-slate-800 px-1.5 py-0.5 rounded">
+                        {activeLine.speaker}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-slate-400">Pleer tayyor — «Ovozda Tinglash» tugmasini bosing</span>
+                )}
+              </span>
+
+              <span className="font-mono text-slate-400 text-[11px] shrink-0 ml-2">
+                {activeLineIdx !== null ? `${activeLineIdx + 1} / ${lines.length} gap (${progressPercent}%)` : `${lines.length} ta gap`}
+              </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+
+            {activeLine && (
+              <p className="text-xs text-slate-200 mt-2 truncate font-medium">
+                &ldquo;{getTextForLine(activeLine, voiceLang)}&rdquo;
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ================= 2. CONTROLS: DISPLAY MODES & EXPORT ================= */}
+      <div className="p-3 sm:p-4 bg-[#070b16] rounded-3xl border border-slate-800 space-y-3 shadow-xl">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Language Mode Selector */}
+          {/* Display Mode: Uzbek / Original / Parallel */}
           <div className="flex items-center gap-1.5 p-1 bg-slate-900/90 rounded-2xl border border-slate-800 shrink-0">
             <button
               type="button"
               onClick={() => setDisplayMode('uzbek')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 displayMode === 'uzbek'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                   : 'text-slate-400 hover:text-slate-200'
@@ -268,7 +615,7 @@ export default function SynchronizedTranscript({
             <button
               type="button"
               onClick={() => setDisplayMode('original')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 displayMode === 'original'
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
                   : 'text-slate-400 hover:text-slate-200'
@@ -281,7 +628,7 @@ export default function SynchronizedTranscript({
             <button
               type="button"
               onClick={() => setDisplayMode('parallel')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 displayMode === 'parallel'
                   ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-indigo-600/30'
                   : 'text-slate-400 hover:text-slate-200'
@@ -291,12 +638,12 @@ export default function SynchronizedTranscript({
             </button>
           </div>
 
-          {/* Action Buttons: Copy All, Download TXT, Download SRT */}
+          {/* Export and Download Actions */}
           <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
             <button
               type="button"
               onClick={handleCopyAll}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
               title="To'liq transkriptni nusxalash"
             >
               {copiedAll ? (
@@ -315,7 +662,7 @@ export default function SynchronizedTranscript({
             <button
               type="button"
               onClick={handleDownloadTxt}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
               title=".TXT formatda saqlash"
             >
               <FileText className="w-3.5 h-3.5 text-amber-400" />
@@ -325,7 +672,7 @@ export default function SynchronizedTranscript({
             <button
               type="button"
               onClick={handleDownloadSrt}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 transition-colors cursor-pointer"
               title="Subtitr (.SRT) formatida yuklab olish"
             >
               <Subtitles className="w-3.5 h-3.5 text-cyan-400" />
@@ -355,7 +702,7 @@ export default function SynchronizedTranscript({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="text-blue-400 hover:text-blue-300 text-[11px] underline"
+                className="text-blue-400 hover:text-blue-300 text-[11px] underline cursor-pointer"
               >
                 Tozalash
               </button>
@@ -364,7 +711,7 @@ export default function SynchronizedTranscript({
         </div>
       </div>
 
-      {/* 3. Transcript Scroll Container */}
+      {/* ================= 3. SCROLLABLE TRANSCRIPT LIST ================= */}
       <div className="rounded-3xl border border-slate-800 bg-[#070b16] divide-y divide-slate-800/80 max-h-[580px] overflow-y-auto shadow-2xl p-2 sm:p-3 space-y-1">
         {filteredLines.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-500">
@@ -372,14 +719,14 @@ export default function SynchronizedTranscript({
           </div>
         ) : (
           filteredLines.map((line, idx) => {
-            const isLineActive = activeSpokenId === idx || singleSpeakingIdx === idx;
+            const isLineActive = activeLineIdx === line.id;
             return (
               <div
-                key={idx}
-                id={`transcript-line-${idx}`}
+                key={line.id}
+                id={`transcript-line-${line.id}`}
                 className={`p-3 sm:p-4 rounded-2xl transition-all group flex items-start justify-between gap-3 border ${
                   isLineActive
-                    ? 'bg-blue-950/40 border-cyan-400/80 shadow-lg shadow-cyan-500/10'
+                    ? 'bg-blue-950/40 border-cyan-400 shadow-lg shadow-cyan-500/10'
                     : 'hover:bg-slate-900/60 border-transparent hover:border-slate-800/80'
                 }`}
               >
@@ -411,9 +758,9 @@ export default function SynchronizedTranscript({
                         </span>
                       )}
                       {isLineActive && (
-                        <span className="text-[10px] text-cyan-400 font-bold flex items-center gap-1 animate-pulse">
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                          O&apos;qilmoqda
+                        <span className="text-[10px] text-cyan-400 font-bold flex items-center gap-1.5 animate-pulse bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-500/40">
+                          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                          <span>O&apos;qilmoqda</span>
                         </span>
                       )}
                     </div>
@@ -450,24 +797,19 @@ export default function SynchronizedTranscript({
                   </div>
                 </div>
 
-                {/* Right Actions: Individual Speak Button & Copy Quote */}
+                {/* Right Actions: Play this line & Copy Quote */}
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
-                    onClick={() =>
-                      speakSingleLine(
-                        displayMode === 'original' ? line.originalText : line.translatedText,
-                        idx
-                      )
-                    }
+                    onClick={() => playLine(line.id)}
                     className={`p-2 rounded-xl transition-all cursor-pointer ${
-                      singleSpeakingIdx === idx
+                      isLineActive
                         ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/40'
                         : 'bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-cyan-400'
                     }`}
-                    title="Ushbu gapni ovozda tinglash"
+                    title="Ushbu gapdan boshlab ovozda tinglash"
                   >
-                    <Volume2 className={`w-3.5 h-3.5 ${singleSpeakingIdx === idx ? 'animate-bounce' : ''}`} />
+                    <Volume2 className={`w-3.5 h-3.5 ${isLineActive ? 'animate-bounce' : ''}`} />
                   </button>
 
                   <button
