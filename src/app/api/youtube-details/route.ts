@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(details, {
       status: 200,
       headers: {
-        'Cache-Control': 'public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400',
+        'Cache-Control': 'no-store',
       },
     });
   } catch (err: any) {
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(details, {
       status: 200,
       headers: {
-        'Cache-Control': 'public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400',
+        'Cache-Control': 'no-store',
       },
     });
   } catch (err: any) {

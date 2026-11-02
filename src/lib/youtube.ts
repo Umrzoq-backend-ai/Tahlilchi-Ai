@@ -20,6 +20,7 @@ export interface YouTubeVideoDetails {
   transcriptItems: TranscriptItem[];
   hasTranscript: boolean;
   thumbnailUrl: string;
+  debug?: any;
 }
 
 export function extractYouTubeId(urlOrId?: string | null): string | null {
@@ -161,13 +162,13 @@ function groupIntoNaturalSentences(rawItems: TranscriptItem[]): TranscriptItem[]
 /**
  * Fetch YouTube captions using Android InnerTube API with retries
  */
-async function fetchCaptionsViaInnerTube(videoId: string): Promise<TranscriptItem[]> {
+async function fetchCaptionsViaInnerTube(videoId: string, debugLogs: string[] = []): Promise<TranscriptItem[]> {
   const INNERTUBE_URL = 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false';
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 4500);
+      const timer = setTimeout(() => controller.abort(), 6000);
 
       const res = await fetch(INNERTUBE_URL, {
         method: 'POST',
@@ -193,12 +194,15 @@ async function fetchCaptionsViaInnerTube(videoId: string): Promise<TranscriptIte
       clearTimeout(timer);
 
       if (!res.ok) {
+        debugLogs.push(`Attempt ${attempt}: HTTP ${res.status}`);
         await new Promise((r) => setTimeout(r, 200 * attempt));
         continue;
       }
 
       const data = await res.json();
+      const playability = data?.playabilityStatus?.status;
       const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+      debugLogs.push(`Attempt ${attempt}: playability=${playability}, tracks=${tracks?.length || 0}`);
 
       if (Array.isArray(tracks) && tracks.length > 0) {
         // Prefer Uzbek, then Russian, then English, else first track
@@ -211,24 +215,27 @@ async function fetchCaptionsViaInnerTube(videoId: string): Promise<TranscriptIte
         const timedTextUrl = track.baseUrl;
         if (timedTextUrl) {
           const xmlController = new AbortController();
-          const xmlTimer = setTimeout(() => xmlController.abort(), 4500);
+          const xmlTimer = setTimeout(() => xmlController.abort(), 6000);
           const xmlRes = await fetch(timedTextUrl, { signal: xmlController.signal });
           clearTimeout(xmlTimer);
 
           if (xmlRes.ok) {
             const xml = await xmlRes.text();
+            debugLogs.push(`Attempt ${attempt}: XML length=${xml.length}`);
             const rawItems = parseXmlTranscript(xml);
             if (rawItems.length > 0) {
               return groupIntoNaturalSentences(rawItems);
             }
+          } else {
+            debugLogs.push(`Attempt ${attempt}: XML fetch failed ${xmlRes.status}`);
           }
         }
       }
 
-      // If LOGIN_REQUIRED or empty tracks, brief delay and retry
-      await new Promise((r) => setTimeout(r, 200 * attempt));
-    } catch {
-      await new Promise((r) => setTimeout(r, 200 * attempt));
+      await new Promise((r) => setTimeout(r, 250 * attempt));
+    } catch (e: any) {
+      debugLogs.push(`Attempt ${attempt}: Error: ${e?.message}`);
+      await new Promise((r) => setTimeout(r, 250 * attempt));
     }
   }
 
@@ -324,15 +331,17 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
   }
 
   // 3. Resilient transcript extraction
+  const debugLogs: string[] = [];
   try {
     // Strategy A: Bulletproof InnerTube with retry
-    transcriptItems = await fetchCaptionsViaInnerTube(videoId);
+    transcriptItems = await fetchCaptionsViaInnerTube(videoId, debugLogs);
 
     // Strategy B: Fallback to YoutubeTranscript library
     if (transcriptItems.length === 0) {
       try {
         const fallbackItems = await YoutubeTranscript.fetchTranscript(videoId);
         if (fallbackItems && fallbackItems.length > 0) {
+          debugLogs.push(`Strategy B success: ${fallbackItems.length} items`);
           const rawItems: TranscriptItem[] = fallbackItems.map((it) => {
             const startSec = Math.floor(it.offset / 1000);
             const durSec = Math.floor((it.duration || 3000) / 1000);
@@ -345,9 +354,11 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
             };
           });
           transcriptItems = groupIntoNaturalSentences(rawItems);
+        } else {
+          debugLogs.push('Strategy B: 0 fallback items');
         }
-      } catch {
-        // ignore
+      } catch (fbErr: any) {
+        debugLogs.push(`Strategy B error: ${fbErr?.message}`);
       }
     }
 
@@ -357,7 +368,8 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
         .map((it) => `[${it.start}] ${it.text}`)
         .join('\n');
     }
-  } catch (err) {
+  } catch (err: any) {
+    debugLogs.push(`Outer transcript error: ${err?.message}`);
     console.warn('Transcript extraction failed:', err);
     hasTranscript = false;
   }
@@ -374,5 +386,6 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
     transcriptItems,
     hasTranscript,
     thumbnailUrl,
+    debug: debugLogs,
   };
 }
