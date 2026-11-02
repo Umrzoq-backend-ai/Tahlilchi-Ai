@@ -14,44 +14,61 @@ import {
   Sparkles,
   ArrowLeft,
   Trash2,
+  RefreshCw,
+  Zap,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { testGeminiApiKey } from '@/lib/gemini-client';
 
 const MODEL_OPTIONS = [
   {
     id: 'gemini-2.5-flash',
     name: 'Gemini 2.5 Flash',
-    desc: 'Balanced speed, multimodal intelligence, and 1M context window. Best for general video analysis.',
-    badge: 'Recommended',
+    desc: 'O\'ta tezkor, multimodal sun\'iy intellekt va 1M tokenlik kontekst oynasi. Umumiy video, audio va PDF tahlili uchun eng yaxshi tavsiya.',
+    badge: 'Tavsiya etiladi',
     badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   },
   {
     id: 'gemini-2.5-flash-lite',
     name: 'Gemini 2.5 Flash Lite',
-    desc: 'Lightweight, ultra-fast, and cost-efficient for rapid summarization and high throughput.',
-    badge: 'Fast',
+    desc: 'Yengil, yuqori tezlikdagi va tejamkor model. Qisqa vaqtda konspekt va tezkor xulosa olish uchun qulay.',
+    badge: 'Tezkor',
     badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   },
   {
     id: 'gemini-2.5-pro',
     name: 'Gemini 2.5 Pro',
-    desc: 'Deep reasoning, complex 3V pitch breakdown, and massive 2M token context window.',
+    desc: 'Chuqur mantiqiy fikrlash, murakkab 3V tahlili va 2M ulkan tokenli kontekst. Ilmiy va texnik materiallar uchun.',
     badge: 'Pro',
     badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   },
   {
-    id: 'gemini-3-flash-preview',
-    name: 'Gemini 3 Flash',
-    desc: 'Next-generation preview model engineered for low latency multimodal processing.',
-    badge: 'Preview',
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash',
+    desc: 'Klassik va barqaror multimodal model. Ko\'p sinovdan o\'tgan mustahkam xizmat.',
+    badge: 'Stabil',
     badgeColor: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
   },
   {
-    id: 'gemini-3-pro-preview',
-    name: 'Gemini 3 Pro',
-    desc: "Google's flagship multimodal model with maximum analytical capability and reasoning.",
-    badge: 'Preview',
+    id: 'gemini-1.5-flash',
+    name: 'Gemini 1.5 Flash',
+    desc: 'Barcha standart Google AI Studio kalitlari bilan 100% mos keluvchi universal model.',
+    badge: 'Universal',
     badgeColor: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+  },
+  {
+    id: 'gemini-3-flash-preview',
+    name: 'Gemini 3 Flash (Preview)',
+    desc: 'Yangi avlod tezkor sinov modeli. Eng so\'nggi Google arxitekturasi.',
+    badge: 'Preview',
+    badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+  },
+  {
+    id: 'gemini-3-pro-preview',
+    name: 'Gemini 3 Pro (Preview)',
+    desc: 'Google kompaniyasining eng kuchli flagman sinov modeli (ruxsati bor hisoblar uchun).',
+    badge: 'Preview',
+    badgeColor: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
   },
 ];
 
@@ -61,6 +78,10 @@ export default function SettingsPage() {
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [showKey, setShowKey] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Testing API key state
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     const key =
@@ -89,10 +110,44 @@ export default function SettingsPage() {
   };
 
   const handleClear = () => {
-    if (confirm('Clear stored Gemini API key from browser?')) {
+    if (confirm('Gemini API kalitini brauzer xotirasidan o\'chirmoqchimisiz?')) {
       localStorage.removeItem('quanta_api_key');
       localStorage.removeItem('tahlilchi_api_key');
       setApiKey('');
+      setTestResult(null);
+    }
+  };
+
+  const handleTestKey = async () => {
+    const trimmed = apiKey.trim();
+    if (!trimmed) {
+      setTestResult({
+        success: false,
+        message: 'Iltimos, avval API kalitni kiriting.',
+      });
+      return;
+    }
+
+    setIsTesting(true);
+    setTestResult(null);
+
+    try {
+      const res = await testGeminiApiKey(trimmed, selectedModel);
+      setTestResult(res);
+      if (res.success) {
+        // Auto-save on successful test
+        localStorage.setItem('quanta_api_key', trimmed);
+        localStorage.setItem('tahlilchi_api_key', trimmed);
+        localStorage.setItem('quanta_model', selectedModel);
+        localStorage.setItem('tahlilchi_model', selectedModel);
+      }
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        message: err?.message || 'Tarmoq ulanishida kutilmagan xatolik yuz berdi.',
+      });
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -124,7 +179,7 @@ export default function SettingsPage() {
       )}
 
       <div className="space-y-6">
-        {/* 1. API KEY SECTION (Screenshot 7 & 8) */}
+        {/* 1. API KEY SECTION */}
         <div className="bg-gradient-to-b from-[#0e172a]/95 to-[#090e1c]/95 border border-slate-800/80 rounded-3xl p-6 sm:p-7 shadow-xl backdrop-blur-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
@@ -135,16 +190,16 @@ export default function SettingsPage() {
                 {apiKey ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Connected
+                    Kiritilgan
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    Key required
+                    Kalit kiritilmagan
                   </span>
                 )}
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Required for multimodal video, audio, and visual reasoning.
+                Video, audio va PDF hujjatlarni to'liq tahlil qilish uchun Google AI Studio bepul kaliti talab qilinadi.
               </p>
             </div>
 
@@ -159,11 +214,14 @@ export default function SettingsPage() {
             </a>
           </div>
 
-          <div className="relative">
+          <div className="relative mb-3">
             <input
               type={showKey ? 'text' : 'password'}
               value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              onChange={(e) => {
+                setApiKey(e.target.value);
+                setTestResult(null);
+              }}
               placeholder="AIzaSy..."
               className="w-full bg-[#0a0f1d] border border-slate-700/80 rounded-2xl px-4 py-3.5 pr-20 text-sm font-mono text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
             />
@@ -172,7 +230,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => setShowKey(!showKey)}
                 className="p-1.5 text-slate-400 hover:text-white transition-colors"
-                title={showKey ? 'Hide key' : 'Show key'}
+                title={showKey ? 'Kalitni berkitish' : 'Kalitni ko\'rsatish'}
               >
                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -181,23 +239,76 @@ export default function SettingsPage() {
                   type="button"
                   onClick={handleClear}
                   className="p-1.5 text-slate-400 hover:text-red-400 transition-colors"
-                  title="Clear key"
+                  title="Kalitni tozalash"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               )}
             </div>
           </div>
+
+          {/* Test Connection Button & Result */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+            <button
+              type="button"
+              disabled={isTesting || !apiKey.trim()}
+              onClick={handleTestKey}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                isTesting || !apiKey.trim()
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                  : 'bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 shadow-lg shadow-emerald-500/10 cursor-pointer'
+              }`}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-emerald-400' : ''}`} />
+              <span>{isTesting ? 'Google Gemini tekshirilmoqda...' : '🔑 Kalitni Sinash (Test Connection)'}</span>
+            </button>
+
+            <span className="text-[11px] text-slate-500">
+              100% bepul Google AI Studio kalitlari to'liq quvvatda ishlaydi.
+            </span>
+          </div>
+
+          {testResult && (
+            <div
+              className={`mt-4 p-3.5 rounded-2xl border text-xs flex items-start gap-2.5 animate-fadeIn ${
+                testResult.success
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  : 'bg-red-500/10 border-red-500/30 text-red-300'
+              }`}
+            >
+              {testResult.success ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              ) : (
+                <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              )}
+              <div className="space-y-1">
+                <p className="font-semibold">{testResult.message}</p>
+                {testResult.success && (
+                  <p className="text-[11px] text-emerald-400/80">
+                    Kalit avtomatik saqlandi. Endi xaritada yoki Studiyada istalgan videoni tahlil qilishingiz mumkin!
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* 2. AI MODEL SELECTION (Screenshot 8) */}
+        {/* 2. AI MODEL SELECTION */}
         <div className="bg-gradient-to-b from-[#0e172a]/95 to-[#090e1c]/95 border border-slate-800/80 rounded-3xl p-6 sm:p-7 shadow-xl backdrop-blur-xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
             <div>
-              <span className="text-xs font-bold text-slate-400 tracking-wider uppercase">
-                {t.settings.modelLabel}
-              </span>
-              <p className="text-xs text-slate-400 mt-0.5">{t.settings.modelNote}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+                  {t.settings.modelLabel}
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                  <Zap className="w-3 h-3" />
+                  Avtomatik Zaxira Himoyasi
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Barcha Gemini modellari avtomatik zaxira tizimi bilan ta'minlangan. Agar tanlangan model vaqtincha band bo'lsa, tizim uzilishsiz boshqa model orqali tahlilni davom ettiradi.
+              </p>
             </div>
             <a
               href="https://ai.google.dev/pricing"
@@ -249,59 +360,27 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* 3. FREE TIER & STORAGE INFO (Replaced confusing amber billing with emerald access box) */}
-        <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-200/90 flex items-start gap-3.5 shadow-lg shadow-emerald-950/20">
-          <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="text-xs font-bold text-emerald-300 uppercase tracking-wide">
-                {t.settings.billingTitle}
-              </h4>
-              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                100% Free
-              </span>
-            </div>
-            <p className="text-xs text-emerald-200/80 leading-relaxed">{t.settings.billingDesc}</p>
+        {/* 3. SECURITY & PRIVACY NOTE */}
+        <div className="p-5 rounded-3xl bg-[#0a0f1d]/60 border border-slate-800 flex items-start gap-3.5">
+          <Shield className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+          <div className="text-xs text-slate-400 space-y-1">
+            <h4 className="font-bold text-slate-200">Xavfsiz va Shaxsiy Ma'lumotlar</h4>
+            <p className="leading-relaxed">
+              Sizning API kalitingiz faqat o'z brauzeringiz xotirasida (localStorage) saqlanadi va serverda yozib qolinmaydi.
+              So'rovlar to'g'ridan-to'g'ri Google Gemini xavfsiz kanallari orqali amalga oshiriladi.
+            </p>
           </div>
         </div>
 
-        {/* 4. ACTIONS & REAL-TIME SAVE FEEDBACK */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 min-h-[24px]">
-            {saved && (
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 animate-fadeIn">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>✓ {t.settings.saved}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            {saved && (
-              <Link
-                href="/analyzer"
-                className="flex-1 sm:flex-initial px-5 py-3.5 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-lg animate-fadeIn"
-              >
-                <span>{t.nav.analyzer}</span>
-                <span>&rarr;</span>
-              </Link>
-            )}
-
-            <button
-              type="button"
-              onClick={handleSave}
-              className={`flex-1 sm:flex-initial px-8 py-3.5 rounded-2xl font-bold text-sm shadow-xl transition-all duration-300 flex items-center justify-center gap-2 ${
-                saved
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/40 scale-[1.02]'
-                  : 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white shadow-blue-600/30 hover:shadow-cyan-500/40'
-              }`}
-            >
-              <CheckCircle2 className={`w-4 h-4 ${saved ? 'text-white animate-bounce' : 'text-blue-200'}`} />
-              <span>{saved ? t.settings.saved : t.settings.save}</span>
-            </button>
-          </div>
+        {/* Save Button */}
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleSave}
+            className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm shadow-xl shadow-blue-600/25 transition-all cursor-pointer"
+          >
+            {t.settings.save}
+          </button>
         </div>
       </div>
     </div>

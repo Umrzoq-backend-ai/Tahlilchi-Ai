@@ -364,14 +364,38 @@ QAT'IY KO'RSATMALAR:
       return NextResponse.json({ detail: 'Video havola yoki media fayl kiritilishi shart.' }, { status: 400 });
     }
 
-    const response = await ai.models.generateContent({
-      model: modelName,
-      contents,
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0.2,
-      },
-    });
+    const candidateModels = Array.from(new Set([
+      modelName.replace(/^models\//, '').trim(),
+      'gemini-2.5-flash',
+      'gemini-2.5-flash-lite',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-2.5-pro',
+    ])).filter(Boolean);
+
+    let response: any = null;
+    let lastGenError: any = null;
+
+    for (const mod of candidateModels) {
+      try {
+        response = await ai.models.generateContent({
+          model: mod,
+          contents,
+          config: {
+            responseMimeType: 'application/json',
+            temperature: 0.2,
+          },
+        });
+        if (response?.text) break;
+      } catch (err: any) {
+        lastGenError = err;
+        console.warn(`[Tahlilchi AI Server] Model "${mod}" xato berdi, keyingi model bilan urinilmoqda:`, err?.message);
+      }
+    }
+
+    if (!response || !response.text) {
+      throw lastGenError || new Error("Gemini modelidan javob olinmadi.");
+    }
 
     const rawText = response.text || '';
     const parsed = safeJsonParse(rawText);

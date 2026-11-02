@@ -7,30 +7,38 @@ const STORAGE_KEY = 'tahlilchi_api_key';
 const MODEL_KEY = 'tahlilchi_model';
 
 export const AVAILABLE_MODELS = [
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Tezkor va Tavsiya etilgan)', badge: 'Tavsiya' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Yangi avlod tezkor)', badge: 'Yangi' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (Chuqur tahlil & 3V)', badge: 'Pro' },
-  { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview (Eksperimental)', badge: 'Preview' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Tezkor & Tavsiya etilgan)', badge: 'Tavsiya' },
+  { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite (O\'ta tezkor)', badge: 'Tezkor' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (Chuqur tahlil & 2M kontekst)', badge: 'Pro' },
+  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Barqaror)', badge: 'Stabil' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash (Universal)', badge: 'Universal' },
 ];
 
 export default function SettingsModal() {
   const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('gemini-2.0-flash');
+  const [model, setModel] = useState('gemini-2.5-flash');
   const [saved, setSaved] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
-    const storedKey = localStorage.getItem(STORAGE_KEY);
+    const storedKey =
+      localStorage.getItem(STORAGE_KEY) ||
+      localStorage.getItem('quanta_api_key');
     if (storedKey) setApiKey(storedKey);
 
-    const storedModel = localStorage.getItem(MODEL_KEY);
+    const storedModel =
+      localStorage.getItem(MODEL_KEY) ||
+      localStorage.getItem('quanta_model');
     if (storedModel) setModel(storedModel);
   }, []);
 
   const handleSave = () => {
-    localStorage.setItem(STORAGE_KEY, apiKey.trim());
+    const trimmed = apiKey.trim();
+    localStorage.setItem(STORAGE_KEY, trimmed);
+    localStorage.setItem('quanta_api_key', trimmed);
     localStorage.setItem(MODEL_KEY, model);
+    localStorage.setItem('quanta_model', model);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -38,6 +46,7 @@ export default function SettingsModal() {
   const handleClear = () => {
     if (confirm("Haqiqatan ham saqlangan API kalitni o'chirmoqchimisiz?")) {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('quanta_api_key');
       setApiKey('');
     }
   };

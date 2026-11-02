@@ -46,11 +46,24 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
   let hasTranscript = false;
   const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
+  // Safe fetch helper with strict 3.5s timeout to prevent Vercel 504 serverless hangs
+  const safeFetch = async (url: string, init?: RequestInit, ms = 3500) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
   // 1. Fetch official YouTube oEmbed API for verified title & author
   try {
     const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-    const res = await fetch(oembedUrl, { next: { revalidate: 3600 } });
-    if (res.ok) {
+    const res = await safeFetch(oembedUrl, { next: { revalidate: 3600 } }, 3000);
+    if (res && res.ok) {
       const data = await res.json();
       title = data.title || '';
       author = data.author_name || '';
@@ -61,15 +74,15 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
 
   // 2. Fetch YouTube watch page HTML to extract full description, length, and keywords
   try {
-    const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+    const pageRes = await safeFetch(`https://www.youtube.com/watch?v=${videoId}`, {
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept-Language': 'en-US,en;q=0.9',
       },
-    });
+    }, 3500);
 
-    if (pageRes.ok) {
+    if (pageRes && pageRes.ok) {
       const html = await pageRes.text();
 
       if (!title) {
@@ -107,9 +120,13 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
     console.warn('YouTube page scrape error:', err);
   }
 
-  // 3. Attempt to fetch spoken transcript / captions
+  // 3. Attempt to fetch spoken transcript / captions with strict 3.5s timeout
   try {
-    const items = await YoutubeTranscript.fetchTranscript(videoId);
+    const transcriptPromise = YoutubeTranscript.fetchTranscript(videoId);
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Transcript timeout')), 3500)
+    );
+    const items = await Promise.race([transcriptPromise, timeoutPromise]);
     if (items && items.length > 0) {
       hasTranscript = true;
       transcript = items
@@ -121,7 +138,6 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
         .join('\n');
     }
   } catch (err) {
-    // Transcripts might be disabled for music or render showcase videos
     hasTranscript = false;
   }
 

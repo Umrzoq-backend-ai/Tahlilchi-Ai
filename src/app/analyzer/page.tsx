@@ -410,16 +410,15 @@ export default function AnalyzerPage() {
       let data: AnalysisResponse;
 
       // Resilient execution:
-      // For PDF, Audio, or files > 3.5MB, direct client-side analysis bypasses Vercel 4.5MB payload limit & 60s timeout
-      const isLargeFile = selectedFile && selectedFile.size > 3.5 * 1024 * 1024;
-      const isDirectEligible = selectedFile && (isLargeFile || mediaType === 'pdf' || mediaType === 'audio');
-
-      if (isDirectEligible) {
-        console.log(`[Tahlilchi AI] To'g'ridan-to'g'ri Gemini multimodal mijoz tahlili (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)...`);
+      // Direct client-side analysis connects the user's browser directly to Google's Gemini API,
+      // completely bypassing Vercel's 60s serverless 504 Gateway Timeout and 4.5MB upload limit.
+      try {
+        console.log(`[Tahlilchi AI] To'g'ridan-to'g'ri Gemini multimodal tahlili (${modelName})...`);
         data = await analyzeMediaDirectly({
           apiKey,
           modelName,
           file: selectedFile,
+          videoUrl: activeVideoUrl,
           mode,
           targetLanguage: outputLanguage,
           enableTranscript,
@@ -428,9 +427,16 @@ export default function AnalyzerPage() {
           seniorityLevel,
           techStack,
         });
-      } else if (selectedFile) {
-        // Attempt server route; if fails with 413 or network error, fall back to direct client
-        try {
+      } catch (directErr: any) {
+        console.warn(`[Tahlilchi AI] To'g'ridan-to'g'ri tahlil uzilishi:`, directErr);
+
+        // If the error was directly about invalid API key, throw it immediately
+        if (directErr?.message?.includes("Gemini API kaliti noto'g'ri")) {
+          throw directErr;
+        }
+
+        // Otherwise attempt server route as a safety net
+        if (selectedFile) {
           const formData = new FormData();
           formData.append('file', selectedFile);
           formData.append('video', selectedFile);
@@ -454,49 +460,36 @@ export default function AnalyzerPage() {
 
           if (!res.ok) {
             const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.detail || `Analysis failed (${res.status})`);
+            throw new Error(errData.detail || directErr?.message || `Tahlil jarayonida xatolik (${res.status})`);
           }
 
           data = await res.json();
-        } catch (serverErr: any) {
-          console.warn('[Tahlilchi AI] Server tahlilida cheklov yuz berdi, to\'g\'ridan-to\'g\'ri Gemini orqali qayta urinilmoqda:', serverErr);
-          data = await analyzeMediaDirectly({
-            apiKey,
-            modelName,
-            file: selectedFile,
-            mode,
-            targetLanguage: outputLanguage,
-            enableTranscript,
-            childAge,
-            targetRole,
-            seniorityLevel,
-            techStack,
+        } else if (activeVideoUrl) {
+          const res = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              api_key: apiKey,
+              model_name: modelName,
+              video_url: activeVideoUrl,
+              mode,
+              target_language: outputLanguage,
+              enable_transcript: enableTranscript,
+              child_age: childAge,
+              target_role: targetRole,
+              seniority_level: seniorityLevel,
+            }),
           });
-        }
-      } else {
-        // YouTube URL via server route
-        const res = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            api_key: apiKey,
-            model_name: modelName,
-            video_url: activeVideoUrl,
-            mode,
-            target_language: outputLanguage,
-            enable_transcript: enableTranscript,
-            child_age: childAge,
-            target_role: targetRole,
-            seniority_level: seniorityLevel,
-          }),
-        });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || `Analysis failed (${res.status})`);
-        }
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.detail || directErr?.message || `Tahlil jarayonida xatolik (${res.status})`);
+          }
 
-        data = await res.json();
+          data = await res.json();
+        } else {
+          throw directErr;
+        }
       }
 
       setResult(data);
