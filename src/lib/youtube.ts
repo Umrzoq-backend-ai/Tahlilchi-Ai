@@ -1,5 +1,13 @@
 import { YoutubeTranscript } from 'youtube-transcript';
 
+export interface TranscriptItem {
+  offsetMs: number;
+  durationMs: number;
+  start: string;
+  end?: string;
+  text: string;
+}
+
 export interface YouTubeVideoDetails {
   videoId: string;
   title: string;
@@ -9,6 +17,7 @@ export interface YouTubeVideoDetails {
   description: string;
   keywords: string[];
   transcript: string;
+  transcriptItems: TranscriptItem[];
   hasTranscript: boolean;
   thumbnailUrl: string;
 }
@@ -35,6 +44,200 @@ export function formatSecondsToTime(seconds: number): string {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Parse YouTube TimedText XML format (both srv3 <p t="..."> and classic <text start="...">)
+ */
+function parseXmlTranscript(xml: string): TranscriptItem[] {
+  const items: TranscriptItem[] = [];
+
+  // Format 1: srv3 format (<p t="startMs" d="durationMs">...)
+  const pRegex = /<p\s+t="(\d+)"\s+d="(\d+)"[^>]*>([\s\S]*?)<\/p>/g;
+  let match;
+  while ((match = pRegex.exec(xml)) !== null) {
+    const startMs = parseInt(match[1], 10);
+    const durMs = parseInt(match[2], 10);
+    const inner = match[3];
+    let text = '';
+    const sRegex = /<s[^>]*>([^<]*)<\/s>/g;
+    let sMatch;
+    while ((sMatch = sRegex.exec(inner)) !== null) {
+      text += sMatch[1];
+    }
+    if (!text) {
+      text = inner.replace(/<[^>]+>/g, '');
+    }
+    const cleanText = decodeHtmlEntities(text);
+    if (cleanText) {
+      const startSec = Math.floor(startMs / 1000);
+      const endSec = Math.floor((startMs + durMs) / 1000);
+      items.push({
+        offsetMs: startMs,
+        durationMs: durMs,
+        start: formatSecondsToTime(startSec),
+        end: formatSecondsToTime(endSec),
+        text: cleanText,
+      });
+    }
+  }
+
+  if (items.length > 0) return items;
+
+  // Format 2: classic format (<text start="seconds" dur="seconds">...)
+  const textRegex = /<text\s+start="([\d.]+)"\s+dur="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/g;
+  while ((match = textRegex.exec(xml)) !== null) {
+    const startSecFloat = parseFloat(match[1]);
+    const durSecFloat = parseFloat(match[2]);
+    const startMs = Math.round(startSecFloat * 1000);
+    const durMs = Math.round(durSecFloat * 1000);
+    const text = decodeHtmlEntities(match[3]);
+    if (text) {
+      const startSec = Math.floor(startMs / 1000);
+      const endSec = Math.floor((startMs + durMs) / 1000);
+      items.push({
+        offsetMs: startMs,
+        durationMs: durMs,
+        start: formatSecondsToTime(startSec),
+        end: formatSecondsToTime(endSec),
+        text,
+      });
+    }
+  }
+
+  return items;
+}
+
+/**
+ * Group short, fragmented caption snippets into readable, natural sentences (~5-10s)
+ */
+function groupIntoNaturalSentences(rawItems: TranscriptItem[]): TranscriptItem[] {
+  if (rawItems.length <= 1) return rawItems;
+
+  const grouped: TranscriptItem[] = [];
+  let currentGroup: TranscriptItem | null = null;
+
+  for (const item of rawItems) {
+    if (!currentGroup) {
+      currentGroup = { ...item };
+      continue;
+    }
+
+    const timeDiffMs = item.offsetMs - (currentGroup.offsetMs + currentGroup.durationMs);
+    const combinedLength = currentGroup.text.length + item.text.length;
+    const endsWithTerminal = /[.!?]$/.test(currentGroup.text.trim());
+
+    // Merge if short, within 3 seconds gap, and under 180 chars unless terminal punctuation
+    if (!endsWithTerminal && timeDiffMs < 3500 && combinedLength < 180) {
+      currentGroup.text = `${currentGroup.text} ${item.text}`.trim();
+      currentGroup.durationMs = item.offsetMs + item.durationMs - currentGroup.offsetMs;
+      const endSec = Math.floor((currentGroup.offsetMs + currentGroup.durationMs) / 1000);
+      currentGroup.end = formatSecondsToTime(endSec);
+    } else {
+      grouped.push(currentGroup);
+      currentGroup = { ...item };
+    }
+  }
+
+  if (currentGroup) {
+    grouped.push(currentGroup);
+  }
+
+  return grouped;
+}
+
+/**
+ * Fetch YouTube captions using Android InnerTube API with retries
+ */
+async function fetchCaptionsViaInnerTube(videoId: string): Promise<TranscriptItem[]> {
+  const INNERTUBE_URL = 'https://www.youtube.com/youtubei/v1/player?prettyPrint=false';
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 4500);
+
+      const res = await fetch(INNERTUBE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 14)',
+        },
+        body: JSON.stringify({
+          context: {
+            client: {
+              clientName: 'ANDROID',
+              clientVersion: '20.10.38',
+              androidSdkVersion: 34,
+              hl: 'uz',
+              gl: 'UZ',
+            },
+          },
+          videoId,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timer);
+
+      if (!res.ok) {
+        await new Promise((r) => setTimeout(r, 200 * attempt));
+        continue;
+      }
+
+      const data = await res.json();
+      const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+
+      if (Array.isArray(tracks) && tracks.length > 0) {
+        // Prefer Uzbek, then Russian, then English, else first track
+        const track =
+          tracks.find((t: any) => t.languageCode === 'uz') ||
+          tracks.find((t: any) => t.languageCode === 'ru') ||
+          tracks.find((t: any) => t.languageCode === 'en') ||
+          tracks[0];
+
+        const timedTextUrl = track.baseUrl;
+        if (timedTextUrl) {
+          const xmlController = new AbortController();
+          const xmlTimer = setTimeout(() => xmlController.abort(), 4500);
+          const xmlRes = await fetch(timedTextUrl, { signal: xmlController.signal });
+          clearTimeout(xmlTimer);
+
+          if (xmlRes.ok) {
+            const xml = await xmlRes.text();
+            const rawItems = parseXmlTranscript(xml);
+            if (rawItems.length > 0) {
+              return groupIntoNaturalSentences(rawItems);
+            }
+          }
+        }
+      }
+
+      // If LOGIN_REQUIRED or empty tracks, brief delay and retry
+      await new Promise((r) => setTimeout(r, 200 * attempt));
+    } catch {
+      await new Promise((r) => setTimeout(r, 200 * attempt));
+    }
+  }
+
+  return [];
+}
+
+/**
+ * Fetch complete YouTube video details, including verbatim transcript and metadata.
+ */
 export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTubeVideoDetails> {
   const videoId = extractYouTubeId(urlOrId) || urlOrId;
   let title = '';
@@ -43,11 +246,11 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
   let duration = 0;
   let keywords: string[] = [];
   let transcript = '';
+  let transcriptItems: TranscriptItem[] = [];
   let hasTranscript = false;
   const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-  // Safe fetch helper with strict 3.5s timeout to prevent Vercel 504 serverless hangs
-  const safeFetch = async (url: string, init?: RequestInit, ms = 3500) => {
+  const safeFetch = async (url: string, init?: RequestInit, ms = 4000) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), ms);
     try {
@@ -62,7 +265,7 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
   // 1. Fetch official YouTube oEmbed API for verified title & author
   try {
     const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-    const res = await safeFetch(oembedUrl, { next: { revalidate: 3600 } }, 3000);
+    const res = await safeFetch(oembedUrl, { next: { revalidate: 3600 } }, 3500);
     if (res && res.ok) {
       const data = await res.json();
       title = data.title || '';
@@ -78,9 +281,9 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Language': 'en-US,en;q=0.9,uz;q=0.8',
       },
-    }, 3500);
+    }, 4000);
 
     if (pageRes && pageRes.ok) {
       const html = await pageRes.text();
@@ -120,24 +323,42 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
     console.warn('YouTube page scrape error:', err);
   }
 
-  // 3. Attempt to fetch spoken transcript / captions with strict 3.5s timeout
+  // 3. Resilient transcript extraction
   try {
-    const transcriptPromise = YoutubeTranscript.fetchTranscript(videoId);
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Transcript timeout')), 3500)
-    );
-    const items = await Promise.race([transcriptPromise, timeoutPromise]);
-    if (items && items.length > 0) {
+    // Strategy A: Bulletproof InnerTube with retry
+    transcriptItems = await fetchCaptionsViaInnerTube(videoId);
+
+    // Strategy B: Fallback to YoutubeTranscript library
+    if (transcriptItems.length === 0) {
+      try {
+        const fallbackItems = await YoutubeTranscript.fetchTranscript(videoId);
+        if (fallbackItems && fallbackItems.length > 0) {
+          const rawItems: TranscriptItem[] = fallbackItems.map((it) => {
+            const startSec = Math.floor(it.offset / 1000);
+            const durSec = Math.floor((it.duration || 3000) / 1000);
+            return {
+              offsetMs: it.offset,
+              durationMs: it.duration || 3000,
+              start: formatSecondsToTime(startSec),
+              end: formatSecondsToTime(startSec + durSec),
+              text: decodeHtmlEntities(it.text),
+            };
+          });
+          transcriptItems = groupIntoNaturalSentences(rawItems);
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    if (transcriptItems.length > 0) {
       hasTranscript = true;
-      transcript = items
-        .map((it) => {
-          const totalSec = Math.floor(it.offset / 1000);
-          const timeStr = formatSecondsToTime(totalSec);
-          return `[${timeStr}] ${it.text}`;
-        })
+      transcript = transcriptItems
+        .map((it) => `[${it.start}] ${it.text}`)
         .join('\n');
     }
   } catch (err) {
+    console.warn('Transcript extraction failed:', err);
     hasTranscript = false;
   }
 
@@ -150,6 +371,7 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
     description,
     keywords,
     transcript,
+    transcriptItems,
     hasTranscript,
     thumbnailUrl,
   };

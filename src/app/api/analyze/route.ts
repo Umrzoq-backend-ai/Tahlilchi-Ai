@@ -324,14 +324,6 @@ export async function POST(req: NextRequest) {
         console.warn('Failed to fetch YouTube details:', err);
       }
 
-      // 1. Pass the native YouTube video directly to Gemini Multimodal Engine
-      contents.push({
-        fileData: {
-          fileUri: videoUrl,
-          mimeType: 'video/mp4',
-        },
-      });
-
       const videoTitle = videoMeta?.title || 'YouTube Video';
       const videoAuthor = videoMeta?.author || 'YouTube Muallifi';
       const hasValidDuration = videoMeta?.duration && videoMeta.duration > 0;
@@ -347,14 +339,14 @@ ${videoMeta?.keywords?.length ? `- Kalit mavzular: ${videoMeta.keywords.slice(0,
 
 ${videoMeta?.description ? `- Video haqida rasmiy tavsif:\n${videoMeta.description.slice(0, 4000)}` : ''}
 
-${videoMeta?.hasTranscript && videoMeta?.transcript ? `- Spiker nutqi va subtitrlar:\n${videoMeta.transcript.slice(0, 150000)}` : ''}
+${videoMeta?.hasTranscript && videoMeta?.transcript ? `- Spiker nutqi va subtitrlar (so'zma-so'z):\n${videoMeta.transcript.slice(0, 150000)}` : ''}
 ==================================================
 
-QAT'IY KO'RSATMALAR:
-1. Ushbu YouTube videoni to'liq multimodal formatda (kadrlar va audio ovozini birgalikda) tahlil qiling.
-2. Videoda aytilgan barcha gaplarni, suhbatlarni va asosiy fikrlarni "audio_timeline" massivida xronologik tartibda so'zma-so'z daqiqama-daqiqa (timestamps bilan) yozing.
-3. Foydalanuvchi videoni ko'rmasdan ham to'liq tushunishi uchun "summary" qismida KENG QAMROVLI, CHUQUR va MUKAMMAL konspekt-xulosa bering.
-4. HECH QACHON "videoning davomiyligi 0 soniya", "video ochilmadi" yoki "video mazmuni yo'q" deb aytmang! Videoning haqiqiy audiosi va kadrlaridan foydalanib boy tahlil taqdim eting.
+QAT'IY KO'RSATMALAR (MUTLAQO BUZILMASIN):
+1. Ushbu YouTube videoni haqiqiy ma'lumotlari va transkripti asosida tahlil qiling.
+2. Sarlavhani ("headline") videoning haqiqiy mavzusiga ("${videoTitle}") to'liq moslang.
+3. Foydalanuvchi butun videoni ko'rmasdan ham to'liq tushunishi uchun "summary" qismida KENG QAMROVLI, CHUQUR va MUKAMMAL konspekt-xulosa bering.
+4. Begona yoki to'qima mavzuni (masalan, AI janjallari yoki boshqa soxta yangiliklarni) aslo aralashtirmang! Faqat ushbu videoda gapirilgan mavzuga tayaning.
 5. Faqat va faqat so'ralgan JSON formatida javob bering.`;
 
       contents.push({
@@ -414,11 +406,20 @@ QAT'IY KO'RSATMALAR:
     let fullTranscriptText = videoMeta?.transcript || '';
     let audioTimeline = Array.isArray(parsed.audio_timeline) ? parsed.audio_timeline : [];
 
-    if (audioTimeline.length === 0 && videoMeta?.transcript) {
+    if (videoMeta?.transcriptItems && videoMeta.transcriptItems.length > 0) {
+      audioTimeline = videoMeta.transcriptItems.map((item: any) => ({
+        start: item.start || '00:00',
+        end: item.end || '',
+        speaker: videoMeta.author || 'Spiker',
+        emotion: 'Neutral',
+        text: item.text,
+        translation: item.text,
+      }));
+    } else if (audioTimeline.length === 0 && videoMeta?.transcript) {
       const regex = /\[(\d{1,2}:\d{2}(?::\d{2})?)\]\s*(.*)/g;
       let m;
       let count = 0;
-      while ((m = regex.exec(videoMeta.transcript)) !== null && count < 300) {
+      while ((m = regex.exec(videoMeta.transcript)) !== null && count < 400) {
         const textSegment = m[2]?.trim() || '';
         if (textSegment) {
           audioTimeline.push({
