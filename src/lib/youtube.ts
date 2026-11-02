@@ -1,3 +1,4 @@
+import https from 'https';
 import { YoutubeTranscript } from 'youtube-transcript';
 
 export interface TranscriptItem {
@@ -59,156 +60,231 @@ function decodeHtmlEntities(str: string): string {
 }
 
 /**
- * Parse YouTube TimedText XML format (supporting srv3 format <p t="...">, word-based <w t="...">, and classic <text start="...">)
+ * Robust IPv4 https get helper to prevent Node 22 IPv6 connect timeouts on cloud environments
  */
-function parseXmlTranscript(xml: string): TranscriptItem[] {
-  const items: TranscriptItem[] = [];
-
-  // Format 1: word-based <w t="ms" d="ms">word</w> format inside <p> or standalone
-  const wRegex = /<w\s+t="(\d+)"\s+d="(\d+)"[^>]*>([\s\S]*?)<\/w>/g;
-  let wMatch;
-  const wordTokens: { offsetMs: number; durationMs: number; text: string }[] = [];
-  while ((wMatch = wRegex.exec(xml)) !== null) {
-    const startMs = parseInt(wMatch[1], 10);
-    const durMs = parseInt(wMatch[2], 10);
-    const text = decodeHtmlEntities(wMatch[3].replace(/<[^>]+>/g, ''));
-    if (text) {
-      wordTokens.push({ offsetMs: startMs, durationMs: durMs, text });
-    }
-  }
-
-  if (wordTokens.length > 0) {
-    // Group individual words into coherent spoken sentences (~6-10 words or 4-8 seconds)
-    let curWords: string[] = [];
-    let curStartMs = wordTokens[0].offsetMs;
-    let curLastMs = curStartMs;
-
-    for (let i = 0; i < wordTokens.length; i++) {
-      const token = wordTokens[i];
-      curWords.push(token.text);
-      curLastMs = token.offsetMs + token.durationMs;
-
-      const endsWithTerminal = /[.!?]$/.test(token.text);
-      const isLongEnough = curWords.length >= 7 || (curLastMs - curStartMs) >= 5000;
-      const isNextFar = i + 1 < wordTokens.length && (wordTokens[i + 1].offsetMs - curLastMs) > 1500;
-
-      if (endsWithTerminal || isLongEnough || isNextFar || i === wordTokens.length - 1) {
-        const sentenceText = curWords.join(' ').trim();
-        if (sentenceText) {
-          const startSec = Math.floor(curStartMs / 1000);
-          const endSec = Math.floor(curLastMs / 1000);
-          items.push({
-            offsetMs: curStartMs,
-            durationMs: curLastMs - curStartMs,
-            start: formatSecondsToTime(startSec),
-            end: formatSecondsToTime(endSec),
-            text: sentenceText,
-          });
+function httpsGet(urlStr: string, timeoutMs = 4500): Promise<string> {
+  return new Promise((resolve, reject) => {
+    try {
+      const u = new URL(urlStr);
+      const req = https.get(
+        {
+          hostname: u.hostname,
+          path: u.pathname + u.search,
+          family: 4,
+          timeout: timeoutMs,
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          },
+        },
+        (res) => {
+          if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+            res.resume();
+            return reject(new Error(`HTTP ${res.statusCode}`));
+          }
+          let data = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk) => (data += chunk));
+          res.on('end', () => resolve(data));
         }
-        curWords = [];
-        if (i + 1 < wordTokens.length) {
-          curStartMs = wordTokens[i + 1].offsetMs;
-        }
-      }
-    }
-    if (items.length > 0) return items;
-  }
-
-  // Format 2: srv3 format (<p t="startMs" d="durationMs">...)
-  const pRegex = /<p\s+t="(\d+)"\s+d="(\d+)"[^>]*>([\s\S]*?)<\/p>/g;
-  let match;
-  while ((match = pRegex.exec(xml)) !== null) {
-    const startMs = parseInt(match[1], 10);
-    const durMs = parseInt(match[2], 10);
-    const inner = match[3];
-    let text = '';
-    const sRegex = /<s[^>]*>([^<]*)<\/s>/g;
-    let sMatch;
-    while ((sMatch = sRegex.exec(inner)) !== null) {
-      text += sMatch[1];
-    }
-    if (!text) {
-      text = inner.replace(/<[^>]+>/g, '');
-    }
-    const cleanText = decodeHtmlEntities(text);
-    if (cleanText) {
-      const startSec = Math.floor(startMs / 1000);
-      const endSec = Math.floor((startMs + durMs) / 1000);
-      items.push({
-        offsetMs: startMs,
-        durationMs: durMs,
-        start: formatSecondsToTime(startSec),
-        end: formatSecondsToTime(endSec),
-        text: cleanText,
+      );
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('Request timeout'));
       });
+      req.on('error', reject);
+    } catch (err) {
+      reject(err);
     }
-  }
-
-  if (items.length > 0) return groupIntoNaturalSentences(items);
-
-  // Format 3: classic format (<text start="seconds" dur="seconds">...)
-  const textRegex = /<text\s+start="([\d.]+)"\s+dur="([\d.]+)"[^>]*>([\s\S]*?)<\/text>/g;
-  while ((match = textRegex.exec(xml)) !== null) {
-    const startSecFloat = parseFloat(match[1]);
-    const durSecFloat = parseFloat(match[2]);
-    const startMs = Math.round(startSecFloat * 1000);
-    const durMs = Math.round(durSecFloat * 1000);
-    const text = decodeHtmlEntities(match[3]);
-    if (text) {
-      const startSec = Math.floor(startMs / 1000);
-      const endSec = Math.floor((startMs + durMs) / 1000);
-      items.push({
-        offsetMs: startMs,
-        durationMs: durMs,
-        start: formatSecondsToTime(startSec),
-        end: formatSecondsToTime(endSec),
-        text,
-      });
-    }
-  }
-
-  return groupIntoNaturalSentences(items);
+  });
 }
 
 /**
- * Group short, fragmented caption snippets into readable, natural sentences (~5-10s)
+ * Parse WebVTT subtitle stream into clean, deduplicated TranscriptItem array
  */
-function groupIntoNaturalSentences(rawItems: TranscriptItem[]): TranscriptItem[] {
-  if (rawItems.length <= 1) return rawItems;
+function parseCleanWebVtt(vttText: string): TranscriptItem[] {
+  const raw: { start: string; end: string; text: string }[] = [];
+  const lines = vttText.split(/\r?\n/);
+  let curStart = '';
+  let curEnd = '';
+  let curText: string[] = [];
 
-  const grouped: TranscriptItem[] = [];
-  let currentGroup: TranscriptItem | null = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.includes('-->')) {
+      const parts = line.split('-->').map((p) => p.trim());
+      curStart = parts[0].split('.')[0];
+      if (curStart.startsWith('00:')) curStart = curStart.slice(3);
+      curEnd = parts[1].split('.')[0];
+      if (curEnd.startsWith('00:')) curEnd = curEnd.slice(3);
+      curText = [];
+    } else if (line === '' || line === 'WEBVTT' || line.startsWith('Kind:') || line.startsWith('Language:')) {
+      if (curText.length > 0 && curStart) {
+        const clean = curText
+          .join(' ')
+          .replace(/<[^>]+>/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (clean) raw.push({ start: curStart, end: curEnd, text: decodeHtmlEntities(clean) });
+        curText = [];
+      }
+    } else {
+      curText.push(line);
+    }
+  }
 
-  for (const item of rawItems) {
-    if (!currentGroup) {
-      currentGroup = { ...item };
+  // Deduplicate rolling caption window lines
+  const cleanItems: TranscriptItem[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const cur = raw[i];
+    const next = raw[i + 1];
+
+    if (next && (next.text.includes(cur.text) || next.text.startsWith(cur.text))) {
+      continue;
+    }
+    if (cleanItems.length > 0 && cleanItems[cleanItems.length - 1].text === cur.text) {
       continue;
     }
 
-    const timeDiffMs = item.offsetMs - (currentGroup.offsetMs + currentGroup.durationMs);
-    const combinedLength = currentGroup.text.length + item.text.length;
-    const endsWithTerminal = /[.!?]$/.test(currentGroup.text.trim());
+    const startParts = cur.start.split(':').map((p) => parseInt(p, 10));
+    const startSec = startParts.length === 3 ? startParts[0] * 3600 + startParts[1] * 60 + startParts[2] : startParts[0] * 60 + startParts[1];
 
-    if (!endsWithTerminal && timeDiffMs < 3500 && combinedLength < 180) {
-      currentGroup.text = `${currentGroup.text} ${item.text}`.trim();
-      currentGroup.durationMs = item.offsetMs + item.durationMs - currentGroup.offsetMs;
-      const endSec = Math.floor((currentGroup.offsetMs + currentGroup.durationMs) / 1000);
-      currentGroup.end = formatSecondsToTime(endSec);
-    } else {
-      grouped.push(currentGroup);
-      currentGroup = { ...item };
-    }
+    cleanItems.push({
+      offsetMs: startSec * 1000,
+      durationMs: 3000,
+      start: cur.start,
+      end: cur.end,
+      text: cur.text,
+    });
   }
 
-  if (currentGroup) {
-    grouped.push(currentGroup);
-  }
-
-  return grouped;
+  return cleanItems;
 }
 
 /**
- * Fetch YouTube video details and captions using the official YouTube Player InnerTube API
+ * Strategy 1: Fetch captions via reliable Invidious mirror with IPv4
+ */
+async function fetchCaptionsViaInvidious(videoId: string): Promise<TranscriptItem[]> {
+  const HOSTS = [
+    'https://yt.chocolatemoo53.com',
+    'https://inv.nadeko.net',
+    'https://invidious.nerdvpn.de',
+  ];
+
+  for (const host of HOSTS) {
+    try {
+      const jsonStr = await httpsGet(`${host}/api/v1/captions/${videoId}`, 3500);
+      const data = JSON.parse(jsonStr);
+      const captions: any[] = data?.captions || [];
+
+      if (captions.length > 0) {
+        const target =
+          captions.find((c) => c.languageCode === 'uz') ||
+          captions.find((c) => c.languageCode === 'ru') ||
+          captions.find((c) => c.languageCode === 'en') ||
+          captions[0];
+
+        const targetUrl = target.url.startsWith('http') ? target.url : `${host}${target.url}`;
+        const vttStr = await httpsGet(targetUrl, 4000);
+        const parsed = parseCleanWebVtt(vttStr);
+        if (parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {
+      // try next host
+    }
+  }
+
+  return [];
+}
+
+/**
+ * Strategy 2: Official InnerTube Android Client with Google's public key
+ */
+async function fetchCaptionsViaInnerTube(videoId: string): Promise<{ items: TranscriptItem[]; title?: string; author?: string; duration?: number; description?: string }> {
+  const INNERTUBE_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8';
+  const url = `https://www.youtube.com/youtubei/v1/player?key=${INNERTUBE_KEY}&prettyPrint=false`;
+
+  try {
+    const postData = JSON.stringify({
+      context: {
+        client: {
+          clientName: 'ANDROID',
+          clientVersion: '20.10.38',
+          androidSdkVersion: 30,
+          osName: 'Android',
+          osVersion: '11',
+          hl: 'uz',
+          gl: 'UZ',
+        },
+      },
+      videoId,
+    });
+
+    const body = await new Promise<string>((resolve, reject) => {
+      const u = new URL(url);
+      const req = https.request(
+        {
+          hostname: u.hostname,
+          path: u.pathname + u.search,
+          method: 'POST',
+          family: 4,
+          timeout: 4500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData),
+            'User-Agent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11)',
+          },
+        },
+        (res) => {
+          let data = '';
+          res.setEncoding('utf8');
+          res.on('data', (c) => (data += c));
+          res.on('end', () => resolve(data));
+        }
+      );
+      req.on('timeout', () => {
+        req.destroy();
+        reject(new Error('InnerTube timeout'));
+      });
+      req.on('error', reject);
+      req.write(postData);
+      req.end();
+    });
+
+    const data = JSON.parse(body);
+    const vd = data?.videoDetails;
+    let title = vd?.title;
+    let author = vd?.author;
+    let duration = vd?.lengthSeconds ? parseInt(vd.lengthSeconds, 10) : undefined;
+    let description = vd?.shortDescription;
+
+    const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    if (Array.isArray(tracks) && tracks.length > 0) {
+      const track =
+        tracks.find((t: any) => t.languageCode === 'uz') ||
+        tracks.find((t: any) => t.languageCode === 'ru') ||
+        tracks.find((t: any) => t.languageCode === 'en') ||
+        tracks[0];
+
+      if (track?.baseUrl) {
+        const vttOrXml = await httpsGet(track.baseUrl, 4000);
+        const parsed = parseCleanWebVtt(vttOrXml);
+        if (parsed.length > 0) {
+          return { items: parsed, title, author, duration, description };
+        }
+      }
+    }
+
+    return { items: [], title, author, duration, description };
+  } catch {
+    return { items: [] };
+  }
+}
+
+/**
+ * Fetch complete YouTube video details, including verbatim transcript and metadata.
  */
 export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTubeVideoDetails> {
   const videoId = extractYouTubeId(urlOrId) || urlOrId;
@@ -222,138 +298,64 @@ export async function fetchYouTubeVideoDetails(urlOrId: string): Promise<YouTube
   let hasTranscript = false;
   const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-  // Official Innertube API Endpoint with Google's public client key
-  const INNERTUBE_API_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8';
-  const INNERTUBE_URL = `https://www.youtube.com/youtubei/v1/player?key=${INNERTUBE_API_KEY}&prettyPrint=false`;
+  // 1. Fetch official YouTube oEmbed API for verified title & author
+  try {
+    const oembedJson = await httpsGet(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+      3000
+    );
+    const oembed = JSON.parse(oembedJson);
+    if (oembed?.title) title = oembed.title;
+    if (oembed?.author_name) author = oembed.author_name;
+  } catch {
+    // ignore
+  }
 
-  // 1. Primary Strategy: Authenticated InnerTube Android Client with retry
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 6500);
+  // 2. Multi-strategy caption and details fetch
+  try {
+    // Strategy A: Invidious IPv4 mirror
+    transcriptItems = await fetchCaptionsViaInvidious(videoId);
 
-      const res = await fetch(INNERTUBE_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'com.google.android.youtube/20.10.38 (Linux; U; Android 11)',
-        },
-        body: JSON.stringify({
-          context: {
-            client: {
-              clientName: 'ANDROID',
-              clientVersion: '20.10.38',
-              androidSdkVersion: 30,
-              osName: 'Android',
-              osVersion: '11',
-              hl: 'uz',
-              gl: 'UZ',
-            },
-          },
-          videoId,
-        }),
-        signal: controller.signal,
-      });
+    // Strategy B: InnerTube Android Client with IPv4
+    if (transcriptItems.length === 0) {
+      const itRes = await fetchCaptionsViaInnerTube(videoId);
+      if (itRes.items.length > 0) transcriptItems = itRes.items;
+      if (!title && itRes.title) title = itRes.title;
+      if (!author && itRes.author) author = itRes.author;
+      if (!duration && itRes.duration) duration = itRes.duration;
+      if (!description && itRes.description) description = itRes.description;
+    }
 
-      clearTimeout(timer);
-
-      if (!res.ok) {
-        await new Promise((r) => setTimeout(r, 200 * attempt));
-        continue;
-      }
-
-      const data = await res.json();
-      const vd = data?.videoDetails;
-
-      if (vd) {
-        if (!title && vd.title) title = vd.title;
-        if (!author && vd.author) author = vd.author;
-        if (!duration && vd.lengthSeconds) duration = parseInt(vd.lengthSeconds, 10);
-        if (!description && vd.shortDescription) description = vd.shortDescription;
-      }
-
-      const tracks = data?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-      if (Array.isArray(tracks) && tracks.length > 0) {
-        const track =
-          tracks.find((t: any) => t.languageCode === 'uz') ||
-          tracks.find((t: any) => t.languageCode === 'ru') ||
-          tracks.find((t: any) => t.languageCode === 'en') ||
-          tracks[0];
-
-        const timedTextUrl = track.baseUrl;
-        if (timedTextUrl) {
-          const xmlController = new AbortController();
-          const xmlTimer = setTimeout(() => xmlController.abort(), 6500);
-          const xmlRes = await fetch(timedTextUrl, { signal: xmlController.signal });
-          clearTimeout(xmlTimer);
-
-          if (xmlRes.ok) {
-            const xml = await xmlRes.text();
-            const parsed = parseXmlTranscript(xml);
-            if (parsed.length > 0) {
-              transcriptItems = parsed;
-              hasTranscript = true;
-              transcript = transcriptItems
-                .map((it) => `[${it.start}] ${it.text}`)
-                .join('\n');
-              break;
-            }
-          }
+    // Strategy C: YoutubeTranscript npm package fallback
+    if (transcriptItems.length === 0) {
+      try {
+        const ytItems = await YoutubeTranscript.fetchTranscript(videoId);
+        if (ytItems && ytItems.length > 0) {
+          transcriptItems = ytItems.map((it) => {
+            const startSec = Math.floor(it.offset / 1000);
+            const durSec = Math.floor((it.duration || 3000) / 1000);
+            return {
+              offsetMs: it.offset,
+              durationMs: it.duration || 3000,
+              start: formatSecondsToTime(startSec),
+              end: formatSecondsToTime(startSec + durSec),
+              text: decodeHtmlEntities(it.text),
+            };
+          });
         }
+      } catch {
+        // ignore
       }
-
-      if (data?.playabilityStatus?.status === 'OK') {
-        break;
-      }
-
-      await new Promise((r) => setTimeout(r, 200 * attempt));
-    } catch {
-      await new Promise((r) => setTimeout(r, 200 * attempt));
     }
-  }
 
-  // 2. Secondary Fallback: oEmbed for metadata if title is still empty
-  if (!title) {
-    try {
-      const oembedRes = await fetch(
-        `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
-        { next: { revalidate: 3600 } }
-      );
-      if (oembedRes.ok) {
-        const data = await oembedRes.json();
-        title = data.title || '';
-        author = data.author_name || '';
-      }
-    } catch {
-      // ignore
+    if (transcriptItems.length > 0) {
+      hasTranscript = true;
+      transcript = transcriptItems
+        .map((it) => `[${it.start}] ${it.text}`)
+        .join('\n');
     }
-  }
-
-  // 3. Third Fallback: YoutubeTranscript library for captions
-  if (transcriptItems.length === 0) {
-    try {
-      const fallbackItems = await YoutubeTranscript.fetchTranscript(videoId);
-      if (fallbackItems && fallbackItems.length > 0) {
-        const rawItems: TranscriptItem[] = fallbackItems.map((it) => {
-          const startSec = Math.floor(it.offset / 1000);
-          const durSec = Math.floor((it.duration || 3000) / 1000);
-          return {
-            offsetMs: it.offset,
-            durationMs: it.duration || 3000,
-            start: formatSecondsToTime(startSec),
-            end: formatSecondsToTime(startSec + durSec),
-            text: decodeHtmlEntities(it.text),
-          };
-        });
-        transcriptItems = groupIntoNaturalSentences(rawItems);
-        hasTranscript = transcriptItems.length > 0;
-        transcript = transcriptItems
-          .map((it) => `[${it.start}] ${it.text}`)
-          .join('\n');
-      }
-    } catch {
-      // ignore
-    }
+  } catch (err) {
+    console.warn('[YouTube Details] Error fetching captions:', err);
   }
 
   return {
