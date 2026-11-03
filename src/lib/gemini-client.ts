@@ -133,27 +133,28 @@ export async function analyzeMediaDirectly(params: ClientAnalyzeParams): Promise
 
     const videoTitle = videoMeta?.title || 'YouTube Video';
     const videoAuthor = videoMeta?.author || 'YouTube Muallifi';
-    const durationInfo = videoMeta?.durationFormatted
+    const hasValidDuration = videoMeta?.duration && videoMeta.duration > 0;
+    const durationInfo = hasValidDuration
       ? `${videoMeta.durationFormatted} (${videoMeta.duration} soniya)`
-      : 'Videoni to\'liq boshidan oxirigacha';
+      : (videoMeta?.transcriptItems?.length ? `${videoMeta.transcriptItems.length} ta gapdan iborat to'liq video` : 'Videoni to\'liq boshidan oxirigacha');
 
     if (videoMeta?.hasTranscript && videoMeta?.transcript) {
       parts.push({
         text: `==================================================
-USHBU YOUTUBE VIDEOSINING HAQIQIY MA'LUMOTLARI VA 100% ANIQ TRANSKRIPTI:
+USHBU YOUTUBE VIDEOSINING HAQIQIY MA'LUMOTLARI VA 100% ANIQ SPAYKER NUTQI:
 - Haqiqiy sarlavha (Title): "${videoTitle}"
 - Muallif / Kanal (Author): ${videoAuthor}
 - Davomiyligi: ${durationInfo}
 ${videoMeta.description ? `- Tavsif:\n${videoMeta.description.slice(0, 2500)}` : ''}
 
-VIDEODA SPAYKERNING AYTGAN BARCHA GAPLARI (SO'ZMA-SO'Z NUTQ):
-${videoMeta.transcript.slice(0, 120000)}
+VIDEODA SPAYKERNING AYTGAN BARCHA GAPLARI (SO'ZMA-SO'Z NUTQ - JAMI ${videoMeta.transcriptItems?.length || 0} TA GAP):
+${videoMeta.transcript.slice(0, 150000)}
 ==================================================
 
-QAT'IY KO'RSATMALAR (MUTLAQO BUZILMASIN):
+QAT'IY TALABLAR (MUTLAQO BUZILMASIN):
 1. Sarlavhani ("headline") videoning haqiqiy mavzusiga ("${videoTitle}") to'liq moslang.
-2. Xulosani ("summary") videoda aytilgan haqiqiy fikrlar, faktlar, noutbuk/texnika xususiyatlari yoki ko'tarilgan aniq mavzular asosida keng va chuqur tahliliy konspekt qilib yozing.
-3. Begona yoki to'qima mavzuni (masalan, sun'iy intellekt janjallari yoki Gemini haqidagi uydurmalarni) ASLO YOZMANG! Faqat ushbu videoda gapirilgan mavzuga tayaning!
+2. Xulosani ("summary") videoda aytilgan haqiqiy fikrlar, faktlar, yangiliklar va ko'tarilgan aniq mavzular asosida keng va chuqur tahliliy konspekt qilib yozing.
+3. Videoning davomiyligi yoki matni haqida aslo "0 soniya" yoki "ma'lumot berish imkoni yo'q" deb yozmang! Videoning davomiyligi: ${durationInfo}.
 4. Foydalanuvchi so'ragan natija tili: ${targetLanguage}.
 5. Faqat va faqat so'ralgan JSON formatida javob bering.`,
       });

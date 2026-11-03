@@ -327,7 +327,9 @@ export async function POST(req: NextRequest) {
       const videoTitle = videoMeta?.title || 'YouTube Video';
       const videoAuthor = videoMeta?.author || 'YouTube Muallifi';
       const hasValidDuration = videoMeta?.duration && videoMeta.duration > 0;
-      const durationInfo = hasValidDuration ? `${videoMeta.durationFormatted} (${videoMeta.duration} soniya)` : 'Videoni to\'liq boshidan oxirigacha tahlil qiling';
+      const durationInfo = hasValidDuration
+        ? `${videoMeta.durationFormatted} (${videoMeta.duration} soniya)`
+        : (videoMeta?.transcriptItems?.length ? `${videoMeta.transcriptItems.length} ta gapdan iborat to'liq video` : 'Videoni to\'liq boshidan oxirigacha tahlil qiling');
 
       const videoContext = `
 ==================================================
